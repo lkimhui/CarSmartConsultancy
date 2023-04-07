@@ -19,13 +19,6 @@ print(df.head())
 
 
 
-<<<<<<< Updated upstream
-=======
-print("Smart smart smart")
-print('hi kim huiiiiiii')
-print('HI IVAN!')
->>>>>>> Stashed changes
-
 
 
       
