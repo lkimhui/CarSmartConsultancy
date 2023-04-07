@@ -10,7 +10,7 @@ Created on Wed Apr  5 19:53:27 2023
 import pandas as pd
 import numpy as np
 import re
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords #pip install nltk 
 from nltk.stem import WordNetLemmatizer
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,7 +18,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 #Load the CSV file
 df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
-                      
+#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
     
 #preview the csv file
 print(df.describe())
@@ -37,6 +37,61 @@ print(df.head())
 #Features of product
 #We have standard features here
 #Kwan Yick Code for all features, column A to Q
+
+#Clean data, remove all the Null
+df_nonull = df.dropna()
+
+# Print the number of rows before and after dropping nulls
+print('Number of rows before dropping nulls:', len(df))
+print('Number of rows after dropping nulls:', len(df_nonull))
+
+#Create data frame with selected attributes
+features = df_nonull[['price','depreciation']]
+print(features.describe())
+print(features.info())
+print(features.head())
+
+#Remove punctuation
+features_cleaned = features.copy()
+features_cleaned['price']= features_cleaned['price'].str.replace('[\$,]', '', regex=True)
+features_cleaned['price']= features_cleaned['price'].str.replace(',', '', regex=True)
+features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace('[\$,]', '', regex=True)
+features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace(',', '', regex=True)
+
+#Remove N.A. 
+# Replace "N.A." values with NaN
+features_cleaned.replace('N.A', pd.NA, inplace=True)
+# Calculate the median value for each column
+median_values = features_cleaned.median()
+# Fill NaN values with median value for each column
+features_cleaned.fillna(median_values, inplace=True)
+
+features_cleaned.sort_values('price', ascending=False, inplace=True)
+print(features_cleaned.head())
+
+#Normalize data to avoid bias towards any attribute
+#features_normalized = (features_cleaned - features_cleaned.mean()) / features_cleaned.std()
+#print(features_normalized.head())
+# Error in normalizing data; need to check further
+
+# Compute the pairwise cosine similarity between the items
+#item_similarities = cosine_similarity(features_cleaned.T)
+
+# Get the top k most similar items for each item
+#k = 5
+#top_k_similar_items = item_similarities.argsort()[:, :-k-1:-1]
+
+# Define a function to get the top k recommended items for a given item
+#def get_top_k_recommendations(item_id):
+#    top_k_items = top_k_similar_items[item_id]
+#    top_k_items_scores = item_similarities[item_id][top_k_items]
+#    top_k_items_df = features_cleaned.iloc[top_k_items][['price','mileage']]
+#    top_k_items_df['score'] = top_k_items_scores
+#    top_k_items_df = top_k_items_df.sort_values(by='score', ascending=False)
+#    return top_k_items_df.head(k)
+
+
+
 
 #Ivan Code for column R, S , P 
 
