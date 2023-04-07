@@ -26,6 +26,12 @@ df['coe'] = df['coe'].apply(lambda x: x.translate(str.maketrans('', '', string.p
 pd.crosstab(df['type'],df['power'])
 
 
+<<<<<<< Updated upstream
+=======
+print("Smart smart smart")
+print('hi kim huiiiiiii')
+print('HI IVAN!')
+>>>>>>> Stashed changes
 
 
 
