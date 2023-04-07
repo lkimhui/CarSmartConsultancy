@@ -18,7 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 #Load the CSV file
 df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
-                        
+                      
+    
 #preview the csv file
 print(df.describe())
 print(df.info())
@@ -86,6 +87,24 @@ tfidf_df = pd.DataFrame(X.toarray(),
 tfidf_df.index = df['model']
 
 print(tfidf_df)
+
+# calculate cosine similarity between each pair of rows in the tfidf_df dataframe
+cos_sim = cosine_similarity(tfidf_df)
+
+# create a new dataframe with the cosine similarity scores
+cos_sim_df = pd.DataFrame(cos_sim, columns=tfidf_df.index, index=tfidf_df.index)
+
+# display the top 10 most similar models to a given model (in this example, model 'Honda Vezel')
+model_name = 'Honda Vezel 1.5A X'
+top_similar_models = cos_sim_df[[model_name]].sort_values(by='model', ascending=False)[1:6]
+
+print(top_similar_models)
+
+
+
+
+
+
 
   
 
