@@ -8,6 +8,13 @@ Created on Wed Apr  5 19:53:27 2023
 # Purpose: For cleaning data & build a recommender system
 
 import pandas as pd
+import numpy as np
+import re
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import sklearn
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 #Load the CSV file
 df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
@@ -18,7 +25,68 @@ print(df.info())
 print(df.head())
 
 
+#Notes for report
+#Content Based Filtering, match users directly to product based on what they view and is similiar
+#use neighbourhood approach
+#A few recommender to use
+#1.) Popularity based: Item with lots of listing are what SGCARMART can try to push
+#2.) Content Based Filtering for those item which are similiar to what u view
+#3.) Interface tor ecommend based on your set budget etc #Will need profile learner
+
+#Features of product
+#We have standard features here
+#Kwan Yick Code for all features, column A to Q
+
+#Ivan Code for column R, S , P 
+
+#Converting features to string
+df['car_features'] = df['car_features'].astype(str)
+df['car_accessories'] = df['car_accessories'].astype(str)
+df['descriptions'] = df['descriptions'].astype(str)
 
 
+# define the columns to clean
+cols_to_clean = ['car_features', 'car_accessories', 'descriptions']
 
-      
+# convert the specified columns to lowercase
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.lower())
+
+# remove numbers and unwanted characters using regular expressions
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.replace(r'[^a-z\s]', '', regex=True))
+
+# tokenize the specified columns into words
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.split())
+
+# remove stop words using nltk library
+stop_words = set(stopwords.words('english'))
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: [word for word in y if not pd.isnull(word) and word not in stop_words]))
+
+# lemmatize the words using nltk library
+lemmatizer = WordNetLemmatizer()
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: [lemmatizer.lemmatize(word) for word in y]))
+
+# join the words back into a single string
+df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: ' '.join(y)))
+
+# fill NaN values with empty string
+#df[cols_to_clean] = df[cols_to_clean].replace(np.nan, '', regex=True)
+
+# vectorize the cleaned up columns using TfidfVectorizer
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df[cols_to_clean].apply(lambda x: ' '.join(x), axis=1))
+
+# print the resulting feature names and document-term matrix
+print(vectorizer.get_feature_names())
+print(X.toarray())
+
+
+# create a dataframe from the resulting document-term matrix
+tfidf_df = pd.DataFrame(X.toarray(),
+                        columns=vectorizer.get_feature_names())
+tfidf_df.index = df['model']
+
+print(tfidf_df)
+
+  
+
+
