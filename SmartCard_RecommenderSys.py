@@ -27,6 +27,7 @@ pd.crosstab(df['type'],df['power'])
 
 
 print("Smart smart smart")
+print('hi kim huiiiiiii')
 
 
       
