@@ -6,6 +6,7 @@ Created on Wed Apr  5 19:53:27 2023
 """
 
 # Purpose: For cleaning data & build a recommender system
+#### TO INCLUDE FEATURE ENGINEERING before finalizing RCS
 
 import pandas as pd
 import numpy as np
