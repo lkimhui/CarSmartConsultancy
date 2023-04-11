@@ -46,18 +46,45 @@ df_nonull = df.dropna()
 print('Number of rows before dropping nulls:', len(df))
 print('Number of rows after dropping nulls:', len(df_nonull))
 
-#Create data frame with selected attributes
-features = df_nonull[['price','depreciation']]
+#Create data frame with unique ID(new column) and selected attributes
+# Generate a sequence of integers for the unique IDs
+ids = range(1, len(df_nonull)+1)
+df_nonull['car_id']= ids
+
+features = df_nonull[['car_id','manufactured_year','mileage']]
 print(features.describe())
 print(features.info())
 print(features.head())
 
-#Remove punctuation
+#Data Cleaning 
 features_cleaned = features.copy()
-features_cleaned['price']= features_cleaned['price'].str.replace('[\$,]', '', regex=True)
-features_cleaned['price']= features_cleaned['price'].str.replace(',', '', regex=True)
-features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace('[\$,]', '', regex=True)
-features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace(',', '', regex=True)
+
+#Delimit Mileage to obtain only in km e.g., 124000
+print(features['mileage'].dtype)
+
+# Define a function to extract the integer mileage value
+def extract_mileage(mileage_str):
+    if mileage_str == 'N.A.':
+        return None
+    else:
+        return int(mileage_str.replace(',', '').split()[0])
+
+# Apply the function to the 'mileage' column
+features_cleaned['mileage_int'] = features_cleaned['mileage'].apply(extract_mileage)
+print(features_cleaned.head())
+
+features_cleaned = features_cleaned[features_cleaned['mileage'] != 'N.A.']
+features_cleaned.drop('mileage', axis=1, inplace=True)
+
+top_50_cars_safety = features_cleaned.sort_values(['manufactured_year', 'mileage_int'], ascending=[False, True]).head(50)
+print(top_50_cars_safety.head())
+#11Apr: yay, able to get the top 50 cars with car_id based on manufactured_year and mileage.
+
+#Remove punctuation from Price and Depreciation
+#features_cleaned['price']= features_cleaned['price'].str.replace('[\$,]', '', regex=True)
+#features_cleaned['price']= features_cleaned['price'].str.replace(',', '', regex=True)
+#features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace('[\$,]', '', regex=True)
+#features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace(',', '', regex=True)
 
 #Remove N.A. 
 # Replace "N.A." values with NaN
