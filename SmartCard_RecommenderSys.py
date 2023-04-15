@@ -16,9 +16,14 @@ from nltk.stem import WordNetLemmatizer
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from surprise import Dataset
+from surprise import Reader
+from surprise import SVD
+from surprise.model_selection import cross_validate
+from surprise import accuracy
 
 #Load the CSV file
-df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
+df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
 #df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
     
 #preview the csv file
@@ -124,13 +129,79 @@ print(features_cleaned.head())
 #    top_k_items_df = top_k_items_df.sort_values(by='score', ascending=False)
 #    return top_k_items_df.head(k)
 
+df['price'] = df['price'].str.replace(',', '')
+df['price'] = df['price'].str.replace('$', '')
+df['price'] = df['price'].replace('N.A', np.nan)
+df['price'] = df['price'].astype(float)
 
-#Price Recommender
-print(df_nonull.head())
-print(df_nonull.describe())
-print(df_nonull.info())
+#Building a few sample recommender system
+df = df_nonull
+print(df.head())
+print(df.info())
 
-#Ivan Code for column R, S , P 
+#1 Using just the features price
+#Surprise package
+price_df = df[['car_id', 'model', 'price']]
+print(price_df.head())
+
+reader = Reader(rating_scale=(min(price_df['price']), max(price_df['price'])))
+data = Dataset.load_from_df(price_df, reader)
+
+algo = SVD()
+trainset = data.build_full_trainset()
+algo.fit(trainset)
+
+user_price = float(input('50000: '))
+item_ids = price_df[(price_df['price'] >= user_price * 0.9) & (price_df['price'] <= user_price * 1.1)]['car_id'].tolist()
+
+# make predictions for all items within price range
+predicted_ratings = []
+for item_id in item_ids:
+    predicted_rating = algo.predict(1, item_id).est
+    predicted_ratings.append((item_id, predicted_rating))
+
+# sort predicted ratings in descending order and select top 5 items
+top_items = sorted(predicted_ratings, key=lambda x: x[1], reverse=True)[:5]
+
+# display top 5 recommended items
+for item_id, predicted_rating in top_items:
+    item_name = price_df.loc[price_df['car_id'] == item_id, 'model'].iloc[0]
+    print(f'Recommended item: {item_name}, Predicted Rating: {predicted_rating}')
+
+
+#cosine similarity
+# Calculate the similarity matrix based on price
+
+# Replace NaNs in the price column with median price
+median_price = price_df['price'].median()
+price_df['price'] = price_df['price'].fillna(median_price)
+
+# Normalize the price column to have zero mean and unit variance
+price_df['price'] = (price_df['price'] - price_df['price'].mean()) / price_df['price'].std()
+
+# Compute cosine similarity matrix using the normalized price column
+price_sim = cosine_similarity(price_df['price'].values.reshape(1, -1), price_df['price'].values.reshape(1, -1))
+
+# Get the user's specified price range
+min_price = float(input('0: '))
+max_price = float(input('50000: '))
+
+# Get the items that have a price within the user's specified range
+range_df = price_df[(df['price'] >= min_price) & (price_df['price'] <= max_price)]
+
+# Calculate the similarity score for each item in the range
+range_sim = cosine_similarity(range_df['price'].values.reshape(1,-1), price_df['price'].values.reshape(1,-1))[0]
+
+# Sort the items by similarity score and return the top 10 recommendations
+rec_df = price_df.iloc[range_sim.argsort()[::-1][:10]]
+
+print(rec_df[['car_id', 'model', 'price']])
+
+#2 Using all features less words
+
+
+
+#3 Using just the words description
 
 #Converting features to string
 df['car_features'] = df['car_features'].astype(str)
@@ -187,10 +258,12 @@ cos_sim = cosine_similarity(tfidf_df)
 cos_sim_df = pd.DataFrame(cos_sim, columns=tfidf_df.index, index=tfidf_df.index)
 
 # display the top 10 most similar models to a given model (in this example, model 'Honda Vezel')
-model_name = 'Honda Vezel 1.5A X'
-top_similar_models = cos_sim_df[[model_name]].sort_values(by='model', ascending=False)[1:6]
+model_name = 'Volvo V60 T5 R-Design'
+top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascending=False)[1:6]
 
 print(top_similar_models)
+
+print(df.head())
 
 
 
