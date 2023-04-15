@@ -18,8 +18,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 #Load the CSV file
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
+df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
+#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
     
 #preview the csv file
 print(df.describe())
@@ -33,7 +33,7 @@ print(df.head())
 #A few recommender to use
 #1.) Popularity based: Item with lots of listing are what SGCARMART can try to push
 #2.) Content Based Filtering for those item which are similiar to what u view
-#3.) Interface tor ecommend based on your set budget etc #Will need profile learner
+#3.) Interface to recommend based on your set budget etc #Will need profile learner
 
 #Features of product
 #We have standard features here
@@ -45,11 +45,17 @@ df_nonull = df.dropna()
 # Print the number of rows before and after dropping nulls
 print('Number of rows before dropping nulls:', len(df))
 print('Number of rows after dropping nulls:', len(df_nonull))
+print(df_nonull.head())
 
 #Create data frame with unique ID(new column) and selected attributes
 # Generate a sequence of integers for the unique IDs
 ids = range(1, len(df_nonull)+1)
 df_nonull['car_id']= ids
+col = df_nonull.pop('car_id')
+df_nonull.insert(0,'car_id',col)
+print(df_nonull.head())
+print(df_nonull.describe())
+print(df_nonull.info())  #Note to kwan, I will use this part for the price recommender
 
 features = df_nonull[['car_id','manufactured_year','mileage']]
 print(features.describe())
@@ -119,7 +125,10 @@ print(features_cleaned.head())
 #    return top_k_items_df.head(k)
 
 
-
+#Price Recommender
+print(df_nonull.head())
+print(df_nonull.describe())
+print(df_nonull.info())
 
 #Ivan Code for column R, S , P 
 
