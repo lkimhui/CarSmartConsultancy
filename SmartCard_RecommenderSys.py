@@ -216,20 +216,70 @@ print(f"Mean MAE: {results['test_mae'].mean():.3f}")
 
     
 #2 Using all features less text from features, accessories and descriptions
-df_allfeatureslesswords = df
+df_alllesstext= df
+file_name = "checking.xlsx"
+file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
+df_alllesstext.to_excel(file_path + file_name, index=False)
 
-df_allfeatureslesswords['price'] = df_allfeatureslesswords.groupby('model')['price'].transform(lambda x: x.fillna(x.mean()))
-df_allfeatureslesswords = df_allfeatureslesswords.dropna(subset=['price'])
+#after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
+#depreciation
+df_alllesstext['depreciation'] = df_alllesstext['depreciation'].str.replace(',', '')
+df_alllesstext['depreciation'] = df_alllesstext['depreciation'].str.replace('$', '')
+df_alllesstext['depreciation'] = df_alllesstext['depreciation'].replace('N.A', np.nan)
+df_alllesstext['depreciation'] = df_alllesstext['depreciation'].astype(float)
+
+#deregistration_value
+df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].str.replace(',', '')
+df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].str.replace('$', '')
+df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].replace('N.A.', np.nan)
+df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].astype(float)
+
+#coe
+df_alllesstext['coe'] = df_alllesstext['coe'].str.replace(',', '')
+df_alllesstext['coe'] = df_alllesstext['coe'].str.replace('$', '')
+df_alllesstext['coe'] = df_alllesstext['coe'].replace('N.A.', np.nan)
+df_alllesstext['coe'] = df_alllesstext['coe'].astype(float)
+
+#omv
+df_alllesstext['omv'] = df_alllesstext['omv'].str.replace(',', '')
+df_alllesstext['omv'] = df_alllesstext['omv'].str.replace('$', '')
+df_alllesstext['omv'] = df_alllesstext['omv'].replace('N.A.', np.nan)
+df_alllesstext['omv'] = df_alllesstext['omv'].astype(float)
+
+#arf
+df_alllesstext['arf'] = df_alllesstext['arf'].str.replace(',', '')
+df_alllesstext['arf'] = df_alllesstext['arf'].str.replace('$', '')
+df_alllesstext['arf'] = df_alllesstext['arf'].replace('N.A.', np.nan)
+df_alllesstext = df_alllesstext[~df_alllesstext['arf'].str.contains('kW')]
+df_alllesstext['arf'] = df_alllesstext['arf'].astype(float)
+
+#roadtax
+df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace(',', '')
+df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace('$', '')
+df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace('/yr', '')
+df_alllesstext['road_tax'] = df_alllesstext['road_tax'].replace('N.A.', np.nan)
+df_alllesstext['road_tax'] = df_alllesstext['road_tax'].astype(float)
+
+#mileage
+df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace(r'\(.*?\)', '', regex=True)
+df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace(',', '')
+df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace('$', '')
+df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace('km', '')
+df_alllesstext['mileage'] = df_alllesstext['mileage'].replace('N.A.', np.nan)
+df_alllesstext['mileage'] = df_alllesstext['mileage'].astype(float)
+
+
+file_name = "checking.xlsx"
+file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
+df_alllesstext.to_excel(file_path + file_name, index=False)
+
+
+df_alllesstext.info()
 
 null_counts = df_allfeatureslesswords.isnull().sum()
 print(null_counts)
 
-df_allfeatureslesswords = df_allfeatureslesswords.drop(['car_features', 'car_accessories', 'descriptions'], axis = 1)
-df_allfeatureslesswords['depreciation', 'road_tax'] = df_allfeatureslesswords['depreciation', 'road_tax'].str.replace(',', '')
-df_allfeatureslesswords['price'] = df_allfeatureslesswords['price'].str.replace('$', '')
-columns_to_float = ['depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'trasmission', 'omv', 'arf', 'power', 'number_of_owner']
-df_allfeatureslesswords[columns_to_float] = df_allfeatureslesswords[columns_to_float].astype(float)
-df_allfeatureslesswords.info()
+
 
 #3 Using just the words description
 
