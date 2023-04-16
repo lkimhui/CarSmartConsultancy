@@ -16,6 +16,7 @@ from nltk.stem import WordNetLemmatizer
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import StandardScaler
 from surprise import Dataset
 from surprise import Reader
 from surprise import SVD
@@ -61,7 +62,7 @@ col = df_nonull.pop('car_id')
 df_nonull.insert(0,'car_id',col)
 print(df_nonull.head())
 print(df_nonull.describe())
-print(df_nonull.info())  #Note to kwan, I will use this part for the price recommender
+print(df_nonull.info())  
 
 #Building a sample recommender system for testing
 df = df_nonull
@@ -262,6 +263,8 @@ print(df_alllesstext)
 
 df_alllesstext.info()
 
+df_alllesstext.dropna(inplace=True)
+
 null_counts = df_alllesstext.isnull().sum()
 print(null_counts)
 
@@ -270,44 +273,71 @@ file_name = "checking.xlsx"
 file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
 df_alllesstext.to_excel(file_path + file_name, index=False)
 
+#Normalization #need to revisit the method
+# columns to normalize
+cols_to_normalize = ['price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'omv', 'arf', 'power', 'age_of_car', 'years_since_launch']
 
-#3 Using just the words description
+# replace non-numeric values with NaN
+df_alllesstext[cols_to_normalize] = df_alllesstext[cols_to_normalize].apply(pd.to_numeric, errors='coerce')
+
+# create a StandardScaler object
+scaler = StandardScaler()
+
+# fit and transform the selected columns
+df_alllesstext[cols_to_normalize] = scaler.fit_transform(df_alllesstext[cols_to_normalize])
+#This is for data checking after cleaning
+file_name = "checking.xlsx"
+file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
+df_alllesstext.to_excel(file_path + file_name, index=False)
+
+#Using features without text for the recommdner
+
+df_touse = df_alllesstext.drop(['registration_date', 'car_features', 'car_accessories', 'descriptions'],axis =1)
+df_touse.info()
+
+#features to select
+
+
+
+
+#Mining the text data
+#1 Using just the words description to build a recommdner
 
 #Converting features to string
-df['car_features'] = df['car_features'].astype(str)
-df['car_accessories'] = df['car_accessories'].astype(str)
-df['descriptions'] = df['descriptions'].astype(str)
+df_alllesstext['car_features'] = df_alllesstext['car_features'].astype(str)
+df_alllesstext['car_accessories'] = df_alllesstext['car_accessories'].astype(str)
+df_alllesstext['descriptions'] = df_alllesstext['descriptions'].astype(str)
 
 
 # define the columns to clean
 cols_to_clean = ['car_features', 'car_accessories', 'descriptions']
 
 # convert the specified columns to lowercase
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.lower())
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.str.lower())
 
 # remove numbers and unwanted characters using regular expressions
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.replace(r'[^a-z\s]', '', regex=True))
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.str.replace(r'[^a-z\s]', '', regex=True))
 
 # tokenize the specified columns into words
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.str.split())
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.str.split())
 
 # remove stop words using nltk library
 stop_words = set(stopwords.words('english'))
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: [word for word in y if not pd.isnull(word) and word not in stop_words]))
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.apply(lambda y: [word for word in y if not pd.isnull(word) and word not in stop_words]))
 
 # lemmatize the words using nltk library
 lemmatizer = WordNetLemmatizer()
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: [lemmatizer.lemmatize(word) for word in y]))
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.apply(lambda y: [lemmatizer.lemmatize(word) for word in y]))
 
 # join the words back into a single string
-df[cols_to_clean] = df[cols_to_clean].apply(lambda x: x.apply(lambda y: ' '.join(y)))
+df_alllesstext[cols_to_clean] = df_alllesstext[cols_to_clean].apply(lambda x: x.apply(lambda y: ' '.join(y)))
 
 # fill NaN values with empty string
 #df[cols_to_clean] = df[cols_to_clean].replace(np.nan, '', regex=True)
 
 # vectorize the cleaned up columns using TfidfVectorizer
 vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(df[cols_to_clean].apply(lambda x: ' '.join(x), axis=1))
+X = vectorizer.fit_transform(df_alllesstext[cols_to_clean].apply(lambda x: ' '.join(x), axis=1))
 
 # print the resulting feature names and document-term matrix
 print(vectorizer.get_feature_names())
@@ -317,7 +347,7 @@ print(X.toarray())
 # create a dataframe from the resulting document-term matrix
 tfidf_df = pd.DataFrame(X.toarray(),
                         columns=vectorizer.get_feature_names())
-tfidf_df.index = df['model']
+tfidf_df.index = df_alllesstext['model']
 
 print(tfidf_df)
 
@@ -333,7 +363,9 @@ top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascendi
 
 print(top_similar_models)
 
-print(df.head())
+print(df_alllesstext.head())
+
+
 
 
 #Kwan Code
