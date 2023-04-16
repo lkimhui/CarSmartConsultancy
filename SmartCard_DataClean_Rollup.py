@@ -241,13 +241,6 @@ df_rollup.to_csv(file_path + file_name, index=False)
 
 #Note no normalization applied here
 
-##End of Data Cleaning and Roll up##
-
-
-
-
-
-
-  
+##End of Data Cleaning and Roll up## 
 
 
