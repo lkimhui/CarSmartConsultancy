@@ -64,7 +64,7 @@ print(df_nonull.head())
 print(df_nonull.describe())
 print(df_nonull.info())  
 
-#Building a sample recommender system for testing
+
 df = df_nonull
 print(df.head())
 print(df.info())
@@ -74,6 +74,7 @@ df['price'] = df['price'].str.replace('$', '')
 df['price'] = df['price'].replace('N.A', np.nan)
 df['price'] = df['price'].astype(float)
 
+#Building a sample recommender system for testing
 #1 Using just the features price
 
 price_df = df[['car_id', 'model', 'price']]
@@ -258,6 +259,9 @@ df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
 # drop the original 'transmission' column
 df_alllesstext = df_alllesstext.drop('type', axis=1)
 
+df_alllesstext['model'] = df_alllesstext['model'].str.replace(r'\(.*?\)', '', regex=True)
+df_alllesstext['model'].unique()
+
 # show the updated DataFrame
 print(df_alllesstext)
 
@@ -296,7 +300,7 @@ df_touse = df_alllesstext.drop(['registration_date', 'car_features', 'car_access
 df_touse.info()
 
 #features to select
-
+##
 
 
 
@@ -364,9 +368,6 @@ top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascendi
 print(top_similar_models)
 
 print(df_alllesstext.head())
-
-
-
 
 #Kwan Code
 features = df_nonull[['car_id','manufactured_year','mileage']]
