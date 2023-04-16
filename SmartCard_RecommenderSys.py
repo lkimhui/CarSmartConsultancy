@@ -8,6 +8,10 @@ Created on Wed Apr  5 19:53:27 2023
 # Purpose: For cleaning data & build a recommender system
 #### TO INCLUDE FEATURE ENGINEERING before finalizing RCS
 
+##Start##
+
+##Data Cleaning##
+
 import pandas as pd
 import numpy as np
 import re
@@ -319,6 +323,8 @@ df_alllesstext[cols_to_normalize] = scaler.fit_transform(df_alllesstext[cols_to_
 file_name = "checking.xlsx"
 file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
 df_alllesstext.to_excel(file_path + file_name, index=False)
+
+##End##
 
 #Using features without text for the recommdner
 
