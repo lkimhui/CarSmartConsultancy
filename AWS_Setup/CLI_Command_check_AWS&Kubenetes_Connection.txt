@@ -1,0 +1,30 @@
+#AWS CLI Installation
+https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+#kubectl Installation
+https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+
+#To check if aws cli is able to pass command to aws eks and cluster status
+aws eks --region describe-cluster --name --query cluster.status
+aws eks --region ap-southeast-1 describe-cluster --name NUSISSBEAD_CarSmartConsultancy --query cluster.status
+
+#To update aws eks config with EKS API Server credential
+aws eks --region ap-southeast-1 update-kubeconfig --name NUSISSBEAD_CarSmartConsultancy
+
+#To check if kubectl able to pass command to aws eks kubenetes master node
+kubectl get svc
+
+#Check kubetest nodes status
+kubectl get nodes --watch
+
+#eksctl Installation
+https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html
+
+#choco installatio, need to run PowerShell as Administrator
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))  
+
+#create virtual cluster using emr on eks
+aws emr-containers create-virtual-cluster --name emr-on-eks-NUSISSBEAD-CarSmartConsultancy --container-provider "id=NUSISSBEAD_CarSmartConsultancy,type=EKS,info={eksInfo={namespace=kube-system}}"
+
+#use to check current aws cli login identity
+aws sts get-caller-identity
