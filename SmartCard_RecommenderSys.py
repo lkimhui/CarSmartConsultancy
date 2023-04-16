@@ -210,7 +210,7 @@ df_alllesstext['engine_cap'] = df_alllesstext['engine_cap'].astype(float)
 df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].str.replace(',', '')
 df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].str.replace('kg', '')
 df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].replace('N.A.', np.nan)
-df_alllesstext['curb_weight'] = df_alllesstext['engine_cap'].astype(float)
+df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].astype(float)
 
 #power
 df_alllesstext['power'] = df_alllesstext['power'].str.replace(r'\(.*?\)', '', regex=True)
@@ -276,6 +276,32 @@ print(null_counts)
 file_name = "checking.xlsx"
 file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
 df_alllesstext.to_excel(file_path + file_name, index=False)
+
+#Rollup
+
+selected_cols = ['model', 'price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'omv', 'arf', 'power']
+df_selected = df_alllesstext[selected_cols]
+print(df_selected.head())
+
+df_selected = df_selected.groupby('model').agg({
+    'price': 'median',
+    'depreciation': 'median',
+    'mileage': 'median',
+    'road_tax': 'median',
+    'deregistration_value': 'median',
+    'coe': 'median',
+    'engine_cap': 'median',
+    'curb_weight': 'median',
+    'omv': 'median',
+    'arf': 'median',
+    'power': 'median',
+    })
+
+print(df_selected)
+
+file_name = "rollup.xlsx"
+file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
+df_selected.to_excel(file_path + file_name, index=True)
 
 #Normalization #need to revisit the method
 # columns to normalize
