@@ -16,8 +16,8 @@ import great_expectations as ge
 
 # Load data using great_expectations
 
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
-my_df = ge.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
+my_df = ge.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
+#my_df = ge.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/sgcarmart_usedcar_info.csv')
   
 # You can use all of pandas’ normal methods on it + some more from great_expectations
 my_df.head()

@@ -1,0 +1,1 @@
+{"expectations": [{"meta": {}, "kwargs": {"value": 22}, "expectation_type": "expect_table_column_count_to_equal"}, {"meta": {}, "kwargs": {"column": "model"}, "expectation_type": "expect_column_values_to_not_be_null"}], "meta": {"great_expectations_version": "0.16.7"}, "expectation_suite_name": "default", "ge_cloud_id": null, "data_asset_type": "Dataset"}
