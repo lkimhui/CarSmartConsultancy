@@ -22,8 +22,8 @@ import datetime
 
 ##To note before running code: To change path for ROW 25, 176, 238##
 #Load the CSV file (To add your local Github folder path)
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/Data/scrape_data/sgCarMart_features.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/scrape_data/sgCarMart_features.csv')
     
 #preview the csv file
 print(df.describe())
@@ -132,12 +132,12 @@ year = 2023
 df_alllesstext['years_since_launch'] = year - df_alllesstext['manufactured_year']
 
 #Transmission
-# use get_dummies() to one-hot encode the 'trasmission' column
-df_onehot = pd.get_dummies(df_alllesstext['trasmission'], prefix='trasmission')
+# use get_dummies() to one-hot encode the 'transmission' column
+df_onehot = pd.get_dummies(df_alllesstext['transmission'], prefix='transmission')
 # concatenate the one-hot encoded features with the original DataFrame
 df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
 # drop the original 'transmission' column
-df_alllesstext = df_alllesstext.drop('trasmission', axis=1)
+df_alllesstext = df_alllesstext.drop('transmission', axis=1)
 
 #number_of_owner
 # use get_dummies() to one-hot encode the 'number_of_owner' column
@@ -147,13 +147,13 @@ df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
 # drop the original 'number_of_owner' column
 df_alllesstext = df_alllesstext.drop('number_of_owner', axis=1)
 
-#type
-# use get_dummies() to one-hot encode the 'type' column
-df_onehot = pd.get_dummies(df_alllesstext['type'], prefix='type')
+#types (input file column headers renamed; type --> types)
+# use get_dummies() to one-hot encode the 'types' column
+df_onehot = pd.get_dummies(df_alllesstext['types'], prefix='types')
 # concatenate the one-hot encoded features with the original DataFrame
 df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
-# drop the original 'type' column
-df_alllesstext = df_alllesstext.drop('type', axis=1)
+# drop the original 'types' column
+df_alllesstext = df_alllesstext.drop('types', axis=1)
 
 df_alllesstext['model'] = df_alllesstext['model'].str.replace(r'\(.*?\)', '', regex=True)
 df_alllesstext['model'].unique()
@@ -181,11 +181,11 @@ df_alllesstext.to_excel(file_path + file_name, index=False)
 
 #selected 26 out of 41 columns
 selected_cols = ['model', 'price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 
-                 'coe', 'curb_weight', 'power', 'car_features', 'car_accessories', 'descriptions', 
-                 'age_of_car', 'years_since_launch', 'trasmission_Auto', 
-                 'trasmission_Manual', 'number_of_owner_More than 6',
-                 'type_Hatchback', 'type_Luxury Sedan', 'type_MPV', 'type_Mid-Sized Sedan',
-                 'type_SUV', 'type_Sports Car','type_Stationwagon','type_Truck','type_Van']
+                 'coe', 'curb_weight', 'power', 'features', 'accessories', 'descriptions', 
+                 'age_of_car', 'years_since_launch', 'transmission_Auto', 
+                 'transmission_Manual', 'number_of_owner_More than 6',
+                 'types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan',
+                 'types_SUV', 'types_Sports Car','types_Stationwagon','types_Truck','types_Van']
 df_selected = df_alllesstext[selected_cols]
 print(df_selected.head())
 
@@ -198,24 +198,24 @@ df_rollup = df_selected.groupby('model').agg({
     'coe': 'median',
     'curb_weight': 'median',
     'power': 'median',
-    'car_features': 'sum',
-    'car_accessories': 'sum',
+    'features': 'sum',
+    'accessories': 'sum',
     'descriptions': 'sum',
     'age_of_car': 'median',
     'years_since_launch': 'median',
-    'trasmission_Auto': 'max',
-    'trasmission_Manual': 'max',
+    'transmission_Auto': 'max',
+    'transmission_Manual': 'max',
     'number_of_owner_More than 6': 'max',
-    'type_Hatchback': 'max',
-    'type_Luxury Sedan': 'max',
-    'type_MPV': 'max',
-    'type_Mid-Sized Sedan': 'max',
-    'type_Hatchback': 'max',
-    'type_SUV': 'max',
-    'type_Sports Car': 'max',
-    'type_Stationwagon': 'max',
-    'type_Truck': 'max',
-    'type_Van': 'max',
+    'types_Hatchback': 'max',
+    'types_Luxury Sedan': 'max',
+    'types_MPV': 'max',
+    'types_Mid-Sized Sedan': 'max',
+    'types_Hatchback': 'max',
+    'types_SUV': 'max',
+    'types_Sports Car': 'max',
+    'types_Stationwagon': 'max',
+    'types_Truck': 'max',
+    'types_Van': 'max',
     })
 
 print(df_rollup)
