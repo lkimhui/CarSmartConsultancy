@@ -153,160 +153,12 @@ print(f"Mean MAE: {results['test_mae'].mean():.3f}")
 #Overall, these evaluation metrics suggest that the model may need further improvement or fine-tuning to achieve better performance.
 
 #after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
+#considering cleaned and rolled up data here
 
-df_alllesstext= df
-
-#after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
-#depreciation
-df_alllesstext['depreciation'] = df_alllesstext['depreciation'].str.replace(',', '')
-df_alllesstext['depreciation'] = df_alllesstext['depreciation'].str.replace('$', '')
-df_alllesstext['depreciation'] = df_alllesstext['depreciation'].replace('N.A.', np.nan)
-df_alllesstext['depreciation'] = df_alllesstext['depreciation'].replace('N.A', np.nan)
-df_alllesstext['depreciation'] = df_alllesstext['depreciation'].astype(float)
-
-#deregistration_value
-df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].str.replace(',', '')
-df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].str.replace('$', '')
-df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].replace('N.A.', np.nan)
-df_alllesstext['deregistration_value'] = df_alllesstext['deregistration_value'].astype(float)
-
-#coe
-df_alllesstext['coe'] = df_alllesstext['coe'].str.replace(',', '')
-df_alllesstext['coe'] = df_alllesstext['coe'].str.replace('$', '')
-df_alllesstext['coe'] = df_alllesstext['coe'].replace('N.A.', np.nan)
-df_alllesstext['coe'] = df_alllesstext['coe'].astype(float)
-
-#omv
-df_alllesstext['omv'] = df_alllesstext['omv'].str.replace(',', '')
-df_alllesstext['omv'] = df_alllesstext['omv'].str.replace('$', '')
-df_alllesstext['omv'] = df_alllesstext['omv'].replace('N.A.', np.nan)
-df_alllesstext['omv'] = df_alllesstext['omv'].astype(float)
-
-#arf
-df_alllesstext['arf'] = df_alllesstext['arf'].str.replace(',', '')
-df_alllesstext['arf'] = df_alllesstext['arf'].str.replace('$', '')
-df_alllesstext['arf'] = df_alllesstext['arf'].replace('N.A.', np.nan)
-df_alllesstext = df_alllesstext[~df_alllesstext['arf'].str.contains('kW')]
-df_alllesstext['arf'] = df_alllesstext['arf'].astype(float)
-
-#roadtax
-df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace(',', '')
-df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace('$', '')
-df_alllesstext['road_tax'] = df_alllesstext['road_tax'].str.replace('/yr', '')
-df_alllesstext['road_tax'] = df_alllesstext['road_tax'].replace('N.A.', np.nan)
-df_alllesstext['road_tax'] = df_alllesstext['road_tax'].astype(float)
-
-#mileage
-df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace(r'\(.*?\)', '', regex=True)
-df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace(',', '')
-df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace('$', '')
-df_alllesstext['mileage'] = df_alllesstext['mileage'].str.replace('km', '')
-df_alllesstext['mileage'] = df_alllesstext['mileage'].replace('N.A.', np.nan)
-df_alllesstext['mileage'] = df_alllesstext['mileage'].astype(float)
-
-#enginecap
-df_alllesstext['engine_cap'] = df_alllesstext['engine_cap'].str.replace(',', '')
-df_alllesstext['engine_cap'] = df_alllesstext['engine_cap'].str.replace('cc', '')
-df_alllesstext['engine_cap'] = df_alllesstext['engine_cap'].replace('N.A.', np.nan)
-df_alllesstext['engine_cap'] = df_alllesstext['engine_cap'].astype(float)
-
-#curb_weight
-df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].str.replace(',', '')
-df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].str.replace('kg', '')
-df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].replace('N.A.', np.nan)
-df_alllesstext['curb_weight'] = df_alllesstext['curb_weight'].astype(float)
-
-#power
-df_alllesstext['power'] = df_alllesstext['power'].str.replace(r'\(.*?\)', '', regex=True)
-df_alllesstext['power'] = df_alllesstext['power'].str.replace(',', '')
-df_alllesstext['power'] = df_alllesstext['power'].str.replace('kW', '')
-df_alllesstext['power'] = df_alllesstext['power'].replace('N.A.', np.nan)
-df_alllesstext = df_alllesstext[~df_alllesstext['power'].str.contains('More than 6')]
-df_alllesstext['power'] = df_alllesstext['power'].astype(float)
-
-#registration_dates
-# convert the 'registration_date' column to a datetime object
-df_alllesstext['registration_date'] = pd.to_datetime(df_alllesstext['registration_date'], format='%d-%b-%y')
-# calculate the difference between the registration date and today's date
-today = datetime.datetime.now()
-df_alllesstext['age_of_car'] = (today - df_alllesstext['registration_date']) / pd.Timedelta(days=365)
-# show the updated DataFrame
-print(df_alllesstext)
-
-#manufacturered year
-# calculate the age of the car based on the manufacturer year
-df_alllesstext['manufactured_year'] = df_alllesstext['manufactured_year'].astype(float)
-year = 2023
-df_alllesstext['years_since_launch'] = year - df_alllesstext['manufactured_year']
-
-#Transmission
-# use get_dummies() to one-hot encode the 'trasmission' column
-df_onehot = pd.get_dummies(df_alllesstext['trasmission'], prefix='trasmission')
-# concatenate the one-hot encoded features with the original DataFrame
-df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
-# drop the original 'transmission' column
-df_alllesstext = df_alllesstext.drop('trasmission', axis=1)
-
-#number_of_owner
-# use get_dummies() to one-hot encode the 'number_of_owner' column
-df_onehot = pd.get_dummies(df_alllesstext['number_of_owner'], prefix='number_of_owner')
-# concatenate the one-hot encoded features with the original DataFrame
-df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
-# drop the original 'transmission' column
-df_alllesstext = df_alllesstext.drop('number_of_owner', axis=1)
-
-#type
-# use get_dummies() to one-hot encode the 'type' column
-df_onehot = pd.get_dummies(df_alllesstext['type'], prefix='type')
-# concatenate the one-hot encoded features with the original DataFrame
-df_alllesstext = pd.concat([df_alllesstext, df_onehot], axis=1)
-# drop the original 'transmission' column
-df_alllesstext = df_alllesstext.drop('type', axis=1)
-
-df_alllesstext['model'] = df_alllesstext['model'].str.replace(r'\(.*?\)', '', regex=True)
-df_alllesstext['model'].unique()
-
-# show the updated DataFrame
-print(df_alllesstext)
-
-df_alllesstext.info()
-
-df_alllesstext.dropna(inplace=True)
-
-null_counts = df_alllesstext.isnull().sum()
-print(null_counts)
-
-#This is for data checking after cleaning
-file_name = "checking.xlsx"
-file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
-df_alllesstext.to_excel(file_path + file_name, index=False)
-
-#Rollup
-
-selected_cols = ['model', 'price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'omv', 'arf', 'power']
-df_selected = df_alllesstext[selected_cols]
-print(df_selected.head())
-
-df_selected = df_selected.groupby('model').agg({
-    'price': 'median',
-    'depreciation': 'median',
-    'mileage': 'median',
-    'road_tax': 'median',
-    'deregistration_value': 'median',
-    'coe': 'median',
-    'engine_cap': 'median',
-    'curb_weight': 'median',
-    'omv': 'median',
-    'arf': 'median',
-    'power': 'median',
-    })
-
-print(df_selected)
-
-file_name = "rollup.xlsx"
-file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
-df_selected.to_excel(file_path + file_name, index=True)
-
+## Adding latest cleaned and rolled up data here ## 
+#df_alllesstext = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df_alllesstext = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+ 
 #Normalization #need to revisit the method
 # columns to normalize
 cols_to_normalize = ['price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'omv', 'arf', 'power', 'age_of_car', 'years_since_launch']
@@ -324,7 +176,6 @@ file_name = "checking.xlsx"
 file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
 df_alllesstext.to_excel(file_path + file_name, index=False)
 
-##End##
 
 #Using features without text for the recommdner
 
@@ -401,7 +252,13 @@ print(top_similar_models)
 
 print(df_alllesstext.head())
 
-#Kwan Code
+
+
+## 
+#5.) based on user input, price, car type and age (This is for user who roughly know what they want)
+
+
+
 features = df_nonull[['car_id','manufactured_year','mileage']]
 print(features.describe())
 print(features.info())
