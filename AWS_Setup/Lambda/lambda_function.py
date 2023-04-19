@@ -1,88 +1,85 @@
 # import libraries
-import bs4
 from bs4 import BeautifulSoup
 import requests as req
 import pickle
 import re
 import pandas as pd
 import numpy as np
+import functools
+import operator
+import datetime
 import json
 import boto3
 
 #naming s3 as variable to access AWS S3
 s3 = boto3.client('s3')
 bucket = 'sgcarmart-webscrape-data'
-key = 'id_dl_map/id_dl_map.json'
+key = 'carModelUrls_map/carModelUrls_map.json'
 obj = s3.get_object(Bucket=bucket, Key=key)
 s3u = boto3.resource('s3')
-key1 = 'usedcar_info/usedcar_info.txt'
+key1 = 'car_html_content/'
 
-# find a spefic href tag pattern
-def car_model_href(href):
-    return href and re.compile(r"(^(info.php).*)").search(href)
-    
+# get data from s3
+json_file = obj['Body']
+# load as map dict
+carModelUrls_map = json.load(json_file)
+cur_carModelUrls_map = {}
+
+# define a function which scrape url based on number of pages
+# subfunction 1
+def get_carModelUrl(url):
+    html = req.get(url)
+    soup = BeautifulSoup(html.content, 'lxml')
+    href = soup.body.find('div', {'id':'content'}).find('form', {'name':'searchform'}).next_sibling.next_sibling.find_all(href=re.compile(r"(^(info.php).*)"), string=True)
+    return href
+
+# subfunction 2
+def get_keypairs(hrefString):
+    idValue = re.search("(?<=\?ID=)\d+(?=\&)", str(hrefString))
+    dlValue = re.search("(?<=\;DL=)\d+(?=(\"|\&))", str(hrefString))
+    if idValue not in carModelUrls_map:
+        carModelUrls_map[idValue.group()] = dlValue.group()
+        cur_carModelUrls_map[idValue.group()] = dlValue.group()
+    return cur_carModelUrls_map
+
+# main function 1: get the webpage url
+def scrape_url(page):
+    #convert page to list of car per page
+    pageToList = [(i+1)*100 for i in range(page)]
+    #create BeautifulSoup object
+    urlList = [f"https://www.sgcarmart.com/used_cars/listing.php?BRSR={car}&RPG=100" for car in pageToList]
+    carModelUrlList = list(map(get_carModelUrl, urlList))
+    #flatten the list
+    carModelUrlList = functools.reduce(operator.iconcat, carModelUrlList, [])
+    #get keypairs(id-dl)
+    keypairsList = list(map(get_keypairs, carModelUrlList))
+    #reformat the webpage url
+    carModelUrlList = list(map(lambda x: f"https://www.sgcarmart.com/used_cars/info.php?ID={x[0]}&DL={x[1]}", keypairsList))
+    return carModelUrlList
+
 # define a function to scrape features from SGCar Mart
 def feature_scraping(url):
     print(url)
     # Get the html page
-    html_text = req.get(url)
-    soup = BeautifulSoup(html_text.content, "lxml")
-    text = soup.body
-    return text
+    html = req.get(url)
+    soup = BeautifulSoup(html.content, 'lxml')
+    filename = f"/tmp/car_html_content_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
+    with open(filename, "w") as f:
+        # traverse paragraphs from soup
+        f.write(str(soup))
+    s3u.Bucket(bucket).upload_file(filename, key1)
+    return soup
 
-def lambda_handler(event, context):
-    #get data from s3
-    json_file = obj['Body'].read().decode('utf-8')
-    
-    # open id_dl json file and load back as id_dl map dict
-    with open('data/id_dl_map.json') as json_file:
-        id_dl_map = json.load(json_file)
-    
-    # creating lists for records
-    cur_id_dl_map = {}
-    id_list = []
-    dl_list = []
-    
-    # loop through all pages in sgcarmart used car listing
-    BRSR = 0
-    RPG = 100 #20
 
-    #28th March - completed 0 to 10000 on 28th March
-    for BRSR in range(100, 200, 100): 
-        url = f"https://www.sgcarmart.com/used_cars/listing.php?BRSR={BRSR}&RPG={RPG}"
-        html_text = req.get(url)
-        soup = BeautifulSoup(html_text.content, "lxml")
-        listings = soup.body.find('div', {'class': 'listing_searchbar_position'}).p.string.replace(" ", "")
-        cleaned_listings = re.sub("\D", '', listings)
-        listings_count = int(cleaned_listings)
-        # car models found per page
-        car_model_list = soup.body.find('div', {'id':'content'}).find('form', {'name':'searchform'}).next_sibling.next_sibling.find_all(href=car_model_href, string=True)
-        for model in car_model_list:
-            id = str(model).partition('ID')[2].partition('&')[0].partition('=')[-1]
-            dl = str(model).partition('DL')[2].partition('"')[0].partition('=')[-1]
-            if id not in id_dl_map:
-                id_dl_map[id] = dl
-                cur_id_dl_map[id] = dl
-                id_list.append(id)
-                dl_list.append(dl)
+#def lambda_handler(event, context):
 
-    # overwrite id_dl json file with latest id_dl map
-    with open('/tmp/id_dl_map.json', 'w') as file:
-        json.dump(id_dl_map, file, indent=1)
+    # run main function 1: get webpage url based o
+carModelUrlList = scrape_url(5)
 
-    body = []
-    errorUrlMap = {}
-    for key, value in cur_id_dl_map.items():
-        try:
-            url = f"https://www.sgcarmart.com/used_cars/info.php?ID={key}&DL={value}"
-            textdata = feature_scraping(url)
-            body.append(textdata)
-        except:
-            errorUrlMap[key] = value
-            pass
-    
-    f = open("/tmp/usedcar_info.txt", "w")
-    # write in html body
-    f.write(str(body))
-    #upload the data into s3
-    upload = s3u.Bucket(bucket).upload_file('/tmp/usedcar_info.txt', key1)
+    # overwrite map dict
+mapname = f"/tmp/carModelUrls_map.json"
+with open(mapname, 'w') as mapfile:
+    json.dump(cur_carModelUrls_map, mapfile, indent=1)
+s3u.Bucket(bucket).upload_file(mapname, key)
+
+features = list(map(feature_scraping, carModelUrlList))
