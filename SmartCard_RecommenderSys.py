@@ -27,6 +27,8 @@ from surprise import SVD
 from surprise.model_selection import cross_validate, train_test_split
 from surprise import accuracy
 import datetime
+import tkinter as tk
+
 
 #after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
 #considering cleaned and rolled up data here
@@ -224,32 +226,85 @@ print(df_alllesstext.head())
 #4.) base on combine feature, text and non text (This is for user who dunno what they want)
 
 
-#5.) based on user input, price, car type and age (This is for user who roughly know what they want)
+# 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-df5 = df
+df_5 = df
+print(df_5.head())
 
-top_50_cars_safety = features_cleaned.sort_values(['manufactured_year', 'mileage_int'], 
-                                                  ascending=[False, True]).head(50)
+# Higher Safety Rating 
+# Reasoning: 
+    # Car Type (SUV,  Pickup Truck) has Better safety profile; generally safer in collisions than smaller cars.
+    # Newer cars usally have better safety features and technology
+
+suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
+
+top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
 print(top_50_cars_safety.head())
 
+# Higher Comfort Rating 
+# Reasoning: 
+    # Transmission (Automatic)
+    # Car Type (Luxury) may give more advanced comfort features.
+    # Newer launched cars usally have  newer cars may have better suspension, quieter cabins, and more advanced technology
+
+luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
+
+top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+print(top_50_cars_comfort.head())
+
 #Define user input 
-user_input = safety
+
 
 # Define function for High Safety Rating 
 def high_safety(user_input):
     
-    return recommendations_safety
+    if user_input == 'safety':
+        suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
+        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
+        output = print(top_50_cars_safety.head())
+    
+    else:
+        luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
+        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+        output = print(top_50_cars_comfort.head())   
+    
+    return output
 
-features = df_alllesstext[['car_id','age_of_car','mileage']]
-print(features.describe())
-print(features.info())
-print(features.head())
+# Attempt getting user input using Tkinter (a Python GUI toolkit)
 
-#Normalize data to avoid bias towards any attribute
-#features_normalized = (features_cleaned - features_cleaned.mean()) / features_cleaned.std()
-#print(features_normalized.head())
-# Error in normalizing data; need to check further
+
+
+# Define the function to get user input
+def get_input():
+    # Get the value of the entry widget
+    user_input = entry.get()
+    label.config(text="You entered: " + user_input)
+    
+    # Create a new DataFrame with the user input
+    new_df_5 = pd.DataFrame({'user_input': [user_input]})
+    
+    # Print the new DataFrame
+    print(new_df_5)
+
+# Create the GUI window
+root = tk.Tk()
+
+# Add a label widget and an entry widget to the GUI window
+label = tk.Label(root, text='Enter your input: Safety/ Comfort')
+label.pack()
+entry = tk.Entry(root)
+entry.pack()
+
+# Add a button widget to the GUI window
+button = tk.Button(root, text='Submit', command=get_input)
+button.pack()
+
+# Start the GUI event loop
+root.mainloop()
+
+user_input = 'safety'
+print(high_safety(user_input))
+
 
 # Compute the pairwise cosine similarity between the items
 #item_similarities = cosine_similarity(features_cleaned.T)
