@@ -22,8 +22,8 @@ import datetime
 
 ##To note before running code: To change path for ROW 25, 176, 238##
 #Load the CSV file (To add your local Github folder path)
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/Data/scrape_data/sgCarMart_features.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/scrape_data/sgCarMart_features.csv')
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/Data/tabular_data/sgCarMart_features.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/tabular_data/sgCarMart_features.csv')
     
 #preview the csv file
 print(df.describe())

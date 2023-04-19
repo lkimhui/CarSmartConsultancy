@@ -28,27 +28,26 @@ from surprise.model_selection import cross_validate, train_test_split
 from surprise import accuracy
 import datetime
 
+#after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
+#considering cleaned and rolled up data here
+
+## Adding latest cleaned and rolled up data here ## 
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+
+
+##5 Recommender in total ##
+
+#1.) basic, just price range (done)
+
 #Load the CSV file
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
+df_old = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
+#df_old = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/data/sgcarmart_usedcar_info.csv')
     
 #preview the csv file
 print(df.describe())
 print(df.info())
 print(df.head())
-
-
-#Notes for report
-#Content Based Filtering, match users directly to product based on what they view and is similiar
-#use neighbourhood approach
-#A few recommender to use
-#1.) Popularity based: Item with lots of listing are what SGCARMART can try to push
-#2.) Content Based Filtering for those item which are similiar to what u view
-#3.) Interface to recommend based on your set budget etc #Will need profile learner
-
-#Features of product
-#We have standard features here
-#Kwan Yick Code for all features, column A to Q
 
 #Clean data, remove all the Null
 df_nonull = df.dropna()
@@ -67,7 +66,6 @@ df_nonull.insert(0,'car_id',col)
 print(df_nonull.head())
 print(df_nonull.describe())
 print(df_nonull.info())  
-
 
 df = df_nonull
 print(df.head())
@@ -152,40 +150,8 @@ print(f"Mean MAE: {results['test_mae'].mean():.3f}")
 #The MAE is another measure of the difference between the predicted values and the actual values. It is the average of the absolute differences between the predicted values and the actual values. The lower the MAE value, the better the model's performance. In this case, the MAE value is also quite high, indicating that the model may not be performing well.
 #Overall, these evaluation metrics suggest that the model may need further improvement or fine-tuning to achieve better performance.
 
-#after initial recommender 1, it seems that an extensive data cleaning is require. Moving to data cleaning first
-#considering cleaned and rolled up data here
 
-## Adding latest cleaned and rolled up data here ## 
-#df_alllesstext = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-df_alllesstext = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
- 
-#Normalization #need to revisit the method
-# columns to normalize
-cols_to_normalize = ['price', 'depreciation', 'mileage', 'road_tax', 'deregistration_value', 'coe', 'engine_cap', 'curb_weight', 'omv', 'arf', 'power', 'age_of_car', 'years_since_launch']
-
-# replace non-numeric values with NaN
-df_alllesstext[cols_to_normalize] = df_alllesstext[cols_to_normalize].apply(pd.to_numeric, errors='coerce')
-
-# create a StandardScaler object
-scaler = StandardScaler()
-
-# fit and transform the selected columns
-df_alllesstext[cols_to_normalize] = scaler.fit_transform(df_alllesstext[cols_to_normalize])
-#This is for data checking after cleaning
-file_name = "checking.xlsx"
-file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data'
-df_alllesstext.to_excel(file_path + file_name, index=False)
-
-
-#Using features without text for the recommdner
-
-df_touse = df_alllesstext.drop(['registration_date', 'car_features', 'car_accessories', 'descriptions'],axis =1)
-df_touse.info()
-
-#features to select
-##
-
-
+#2.) Similarity based on product text descritpion columns (done)
 
 #Mining the text data
 #1 Using just the words description to build a recommdner
@@ -252,58 +218,33 @@ print(top_similar_models)
 
 print(df_alllesstext.head())
 
+#3.) base on all non text features
 
 
-## 
+#4.) base on combine feature, text and non text (This is for user who dunno what they want)
+
+
 #5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df5 = df
 
+top_50_cars_safety = features_cleaned.sort_values(['manufactured_year', 'mileage_int'], 
+                                                  ascending=[False, True]).head(50)
+print(top_50_cars_safety.head())
 
-features = df_nonull[['car_id','manufactured_year','mileage']]
+#Define user input 
+user_input = safety
+
+# Define function for High Safety Rating 
+def high_safety(user_input):
+    
+    return recommendations_safety
+
+features = df_alllesstext[['car_id','age_of_car','mileage']]
 print(features.describe())
 print(features.info())
 print(features.head())
-
-#Data Cleaning 
-features_cleaned = features.copy()
-
-#Delimit Mileage to obtain only in km e.g., 124000
-print(features['mileage'].dtype)
-
-# Define a function to extract the integer mileage value
-def extract_mileage(mileage_str):
-    if mileage_str == 'N.A.':
-        return None
-    else:
-        return int(mileage_str.replace(',', '').split()[0])
-
-# Apply the function to the 'mileage' column
-features_cleaned['mileage_int'] = features_cleaned['mileage'].apply(extract_mileage)
-print(features_cleaned.head())
-
-features_cleaned = features_cleaned[features_cleaned['mileage'] != 'N.A.']
-features_cleaned.drop('mileage', axis=1, inplace=True)
-
-top_50_cars_safety = features_cleaned.sort_values(['manufactured_year', 'mileage_int'], ascending=[False, True]).head(50)
-print(top_50_cars_safety.head())
-#11Apr: yay, able to get the top 50 cars with car_id based on manufactured_year and mileage.
-
-#Remove punctuation from Price and Depreciation
-#features_cleaned['price']= features_cleaned['price'].str.replace('[\$,]', '', regex=True)
-#features_cleaned['price']= features_cleaned['price'].str.replace(',', '', regex=True)
-#features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace('[\$,]', '', regex=True)
-#features_cleaned['depreciation']= features_cleaned['depreciation'].str.replace(',', '', regex=True)
-
-#Remove N.A. 
-# Replace "N.A." values with NaN
-features_cleaned.replace('N.A', pd.NA, inplace=True)
-# Calculate the median value for each column
-median_values = features_cleaned.median()
-# Fill NaN values with median value for each column
-features_cleaned.fillna(median_values, inplace=True)
-
-features_cleaned.sort_values('price', ascending=False, inplace=True)
-print(features_cleaned.head())
 
 #Normalize data to avoid bias towards any attribute
 #features_normalized = (features_cleaned - features_cleaned.mean()) / features_cleaned.std()
