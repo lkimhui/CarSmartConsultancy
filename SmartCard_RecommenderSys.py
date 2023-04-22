@@ -185,7 +185,7 @@ cos_sim = cosine_similarity(tfidf_df)
 # create a new dataframe with the cosine similarity scores
 cos_sim_df = pd.DataFrame(cos_sim, columns=tfidf_df.index, index=tfidf_df.index)
 
-# display the top 10 most similar models to a given model (in this example, model 'Honda Vezel')
+# display the top 10 most similar models to a given model (in this example, model 'Volvo V60 T5 R-Design')
 model_name = 'Volvo V60 T5 R-Design'
 top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascending=False)[1:6]
 
@@ -205,7 +205,6 @@ features = df_3.drop(['car_id', 'model'], axis=1)
 # Compute the pairwise cosine similarities between the cars
 similarities = cosine_similarity(features)
 
-# Define a function to recommend similar cars based on a given car model name
 def recommend_car(model_name):
     # Get the row index corresponding to the given car model
     model_index = df_3.index[df_3['model'] == model_name][0]
@@ -216,11 +215,25 @@ def recommend_car(model_name):
     # Get the indices of the top 5 most similar cars (excluding the given car itself)
     top_indices = car_similarities.argsort()[:-6:-1][1:]
 
-    # Return the top 5 most similar cars
-    return df_3.iloc[top_indices][['car_id', 'model']]
+    # Get the cosine similarity scores of the top 5 most similar cars
+    top_similarities = car_similarities[top_indices]
 
-# Example usage: recommend 5 cars similar to the car model "Toyota Camry"
-print(recommend_car("Volvo V60 T5 R-Design"))
+    # Return the top 5 most similar cars and their cosine similarity scores
+    return df_3.iloc[top_indices][['car_id', 'model']], top_similarities
+
+# Example usage: recommend 5 cars similar to the car model "Volvo V60 T5 R-Design"
+similar_cars, similarities = recommend_car("Volvo V60 T5 R-Design")
+print(similar_cars)
+print(similarities)
+
+similar_cars, similarities = recommend_car("Toyota Alphard Hybrid 2.5A X")
+print(similar_cars)
+print(similarities)
+
+similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
+print(similar_cars)
+print(similarities)
+
 
 #4.) base on combine feature, text and non text (This is for user who dunno what they want)
 df_4 = df
@@ -263,13 +276,15 @@ df_4['descriptions_word_counts'] = df_4['descriptions_tokens'].apply(count_token
 df_4 = df_4.drop(["features", "accessories", "descriptions"], axis=1)
 df_4.info()
 
-# Split the data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(df_4.drop('price', axis=1), df_4['price'], test_size=0.2, random_state=42)
-
 #In a hybrid recommender system, we use both the user's preferences and the item features to make recommendations. The content-based approach uses item features to find similar items, while collaborative filtering uses user-item interactions to find similar users or items
 
+#Still got the and only etc..
+#Feature selection code
+
+
 # Define the columns to be used for similarity
-columns_to_use = ['processed_features', 'processed_accessories', 'processed_descriptions', 'model', 'transmission_Auto', 'transmission_Manual', 'types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan', 'types_SUV', 'types_Sports Car', 'types_Stationwagon', 'types_Truck', 'types_Van', 'power', 'age_of_car', 'price']
+#columns_to_use = ['processed_features', 'processed_accessories', 'processed_descriptions', 'model', 'transmission_Auto', 'transmission_Manual', 'types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan', 'types_SUV', 'types_Sports Car', 'types_Stationwagon', 'types_Truck', 'types_Van', 'power', 'age_of_car', 'price']
+columns_to_use = ['processed_features', 'processed_accessories', 'model', 'transmission_Auto', 'transmission_Manual', 'types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan', 'types_SUV', 'types_Sports Car', 'types_Stationwagon', 'types_Truck', 'types_Van', 'power', 'age_of_car', 'price']
 
 # Combine the columns into a single string
 df_4['combined_features'] = df_4[columns_to_use].apply(lambda x: ' '.join(x.astype(str)), axis=1)
@@ -283,7 +298,7 @@ cosine_sim = cosine_similarity(count_matrix, count_matrix)
 
 def get_top_5_car_models(model_name, cosine_sim=cosine_sim, df_4=df_4):
     # Get the indices of the cars with the given model name
-    car_indices = df[df['model'] == model_name].index
+    car_indices = df_4[df_4['model'] == model_name].index
     
     # If no cars are found with the given model name, return an empty dataframe
     if len(car_indices) == 0:
@@ -295,16 +310,30 @@ def get_top_5_car_models(model_name, cosine_sim=cosine_sim, df_4=df_4):
     # Sort the cars based on the similarity scores in descending order
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
     
-    # Get the indices of the top 5 similar cars
+    # Get the indices and cosine similarity scores of the top 5 similar cars
     top_car_indices = [i[0] for i in sim_scores[1:6]]
+    top_car_scores = [i[1] for i in sim_scores[1:6]]
     
     # Get the model names of the top 5 similar cars
-    top_car_models = df.iloc[top_car_indices]['model'].values.tolist()
+    top_car_models = df_4.iloc[top_car_indices]['model'].values.tolist()
+    
+    # Print the top 5 similar car models with their respective cosine similarity scores
+    for i, model in enumerate(top_car_models):
+        print(f"{i+1}. {model} (Cosine Similarity Score: {top_car_scores[i]:.2f})")
     
     # Return the top 5 similar car models
     return top_car_models
 
-get_top_5_car_models('Volvo V60 T5 R-Design')
+get_top_5_car_models("Volvo V60 T5 R-Design")
+
+get_top_5_car_models("Toyota Alphard Hybrid 2.5A X")
+
+get_top_5_car_models("Lamborghini Aventador LP700-4")
+
+
+similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
+print(similar_cars)
+print(similarities)
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
