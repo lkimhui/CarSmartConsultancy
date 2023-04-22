@@ -414,12 +414,13 @@ root.mainloop()
 user_input = 'safety'
 print(high_safety(user_input))
 
-#6.) Showcsing the top 10 selling model in the past periods
+#6.) Showcasing the top 10 selling model in the past periods
 #Top selling models
 df_6 = pd.read_csv("/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
 df_6.info()
 sold_counts = df_6[df_6['status'] == 'SOLD'].groupby('model')['status'].count().reset_index(name='sold_count').sort_values(by='sold_count', ascending=False)
 print(sold_counts.head(10))
+
 
 
 # Compute the pairwise cosine similarity between the items
