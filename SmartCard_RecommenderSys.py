@@ -13,14 +13,21 @@ Created on Wed Apr  5 19:53:27 2023
 ##Data Cleaning##
 
 import pandas as pd
-import numpy as np
-import re
 from nltk.corpus import stopwords #pip install nltk 
 from nltk.stem import WordNetLemmatizer
+import nltk
+nltk.download('punkt')
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import SnowballStemmer
+from collections import Counter
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from math import sqrt
 from surprise import Dataset
 from surprise import Reader
 from surprise import SVD
@@ -189,10 +196,115 @@ print(df_2.head())
 #3.) base on all non text features
 
 df_3 = df
+df_3 = df.drop(columns = ['features', 'accessories', 'descriptions'])
+df_3.info()
 
+# Select the columns containing the features that will be used for recommendation
+features = df_3.drop(['car_id', 'model'], axis=1)
+
+# Compute the pairwise cosine similarities between the cars
+similarities = cosine_similarity(features)
+
+# Define a function to recommend similar cars based on a given car model name
+def recommend_car(model_name):
+    # Get the row index corresponding to the given car model
+    model_index = df_3.index[df_3['model'] == model_name][0]
+
+    # Get the pairwise cosine similarities between the given car and all other cars
+    car_similarities = similarities[model_index]
+
+    # Get the indices of the top 5 most similar cars (excluding the given car itself)
+    top_indices = car_similarities.argsort()[:-6:-1][1:]
+
+    # Return the top 5 most similar cars
+    return df_3.iloc[top_indices][['car_id', 'model']]
+
+# Example usage: recommend 5 cars similar to the car model "Toyota Camry"
+print(recommend_car("Volvo V60 T5 R-Design"))
 
 #4.) base on combine feature, text and non text (This is for user who dunno what they want)
+df_4 = df
+df_4.info()
 
+# Define the stemmer and stop words list
+stemmer = SnowballStemmer("english")
+stop_words = set(stopwords.words("english"))
+
+# Define a function to tokenize, remove stop words, and stem the text
+def process_text(text):
+    # Tokenize the text
+    tokens = word_tokenize(text.lower())
+    
+    # Remove stop words and stem the tokens
+    processed_tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
+    
+    # Return the processed tokens as a string
+    return " ".join(processed_tokens)
+    
+# Apply the function to the columns containing textual data
+df_4["processed_features"] = df_4["features"].apply(process_text)
+df_4["processed_accessories"] = df_4["accessories"].apply(process_text)
+df_4["processed_descriptions"] = df_4["descriptions"].apply(process_text)
+
+# Tokenize the text data in the "features", "accessories", and "descriptions" columns
+df_4['features_tokens'] = df_4['features'].apply(nltk.word_tokenize)
+df_4['accessories_tokens'] = df_4['accessories'].apply(nltk.word_tokenize)
+df_4['descriptions_tokens'] = df_4['descriptions'].apply(nltk.word_tokenize)
+
+# Define a function to count the occurrence of each word in a list of tokens
+def count_tokens(tokens):
+    return Counter(tokens)
+
+# Count the occurrence of each word in the "features_tokens", "accessories_tokens", and "descriptions_tokens" columns
+df_4['features_word_counts'] = df_4['features_tokens'].apply(count_tokens)
+df_4['accessories_word_counts'] = df_4['accessories_tokens'].apply(count_tokens)
+df_4['descriptions_word_counts'] = df_4['descriptions_tokens'].apply(count_tokens)
+
+df_4 = df_4.drop(["features", "accessories", "descriptions"], axis=1)
+df_4.info()
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(df_4.drop('price', axis=1), df_4['price'], test_size=0.2, random_state=42)
+
+#In a hybrid recommender system, we use both the user's preferences and the item features to make recommendations. The content-based approach uses item features to find similar items, while collaborative filtering uses user-item interactions to find similar users or items
+
+# Define the columns to be used for similarity
+columns_to_use = ['processed_features', 'processed_accessories', 'processed_descriptions', 'model', 'transmission_Auto', 'transmission_Manual', 'types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan', 'types_SUV', 'types_Sports Car', 'types_Stationwagon', 'types_Truck', 'types_Van', 'power', 'age_of_car', 'price']
+
+# Combine the columns into a single string
+df_4['combined_features'] = df_4[columns_to_use].apply(lambda x: ' '.join(x.astype(str)), axis=1)
+
+# Define the count vectorizer and fit it to the combined features
+count_vectorizer = CountVectorizer()
+count_matrix = count_vectorizer.fit_transform(df_4['combined_features'])
+
+# Compute the cosine similarity matrix
+cosine_sim = cosine_similarity(count_matrix, count_matrix)
+
+def get_top_5_car_models(model_name, cosine_sim=cosine_sim, df_4=df_4):
+    # Get the indices of the cars with the given model name
+    car_indices = df[df['model'] == model_name].index
+    
+    # If no cars are found with the given model name, return an empty dataframe
+    if len(car_indices) == 0:
+        return pd.DataFrame()
+    
+    # Get the pairwise similarity scores of the cars with the given model name
+    sim_scores = list(enumerate(cosine_sim[car_indices[0]]))
+    
+    # Sort the cars based on the similarity scores in descending order
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    
+    # Get the indices of the top 5 similar cars
+    top_car_indices = [i[0] for i in sim_scores[1:6]]
+    
+    # Get the model names of the top 5 similar cars
+    top_car_models = df.iloc[top_car_indices]['model'].values.tolist()
+    
+    # Return the top 5 similar car models
+    return top_car_models
+
+get_top_5_car_models('Volvo V60 T5 R-Design')
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
