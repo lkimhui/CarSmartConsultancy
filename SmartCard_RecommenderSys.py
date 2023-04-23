@@ -5,16 +5,17 @@ Created on Wed Apr  5 19:53:27 2023
 @author: kwanyick, Ivan
 """
 
-
 ##Start##
 
 ##Recommender Systems##
 
 import pandas as pd
+import numpy as np
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.stem.snowball import SnowballStemmer
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -44,8 +45,8 @@ from PIL import Image, ImageTk #need to pip install Pillow
 #Load the CSV file
 
 #preview the csv file
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
@@ -372,9 +373,6 @@ get_top_5_car_models("Volvo V60 T5 R-Design")
 
 get_top_5_car_models("Toyota Alphard Hybrid 2.5A X")
 
-get_top_5_car_models("Lamborghini Aventador LP700-4")
-
-
 similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
 print(similar_cars)
 print(similarities)
@@ -451,7 +449,7 @@ label.pack()
 
 # Create a PhotoImage object from a file
 image_file = Image.open('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/CSC_Logo.png')
-image = ImageTk.PhotoImage(image_file)
+!image = ImageTk.PhotoImage(image_file)
 
 # Create a Label widget to display the image
 image_label = tk.Label(root, image=image)
@@ -502,32 +500,35 @@ df_7.drop(['registration_date', 'manufactured_year'], axis=1, inplace=True)
 
 #Using K best method
 # Encode categorical columns
-cat_cols = ['model', 'transmission', 'types', 'status', 'maker']
-for col in cat_cols:
-    le = LabelEncoder()
-    df_7[col] = le.fit_transform(df_7[col])
+#cat_cols = ['model', 'transmission', 'types', 'status', 'maker']
+#for col in cat_cols:
+ #   le = LabelEncoder()
+  #  df_7[col] = le.fit_transform(df_7[col])
     
 # Define features and target
-X = df_7.drop(['sold_indicator'], axis=1)
-y = df_7['sold_indicator']
+#X = df_7.drop(['sold_indicator'], axis=1)
+#y = df_7['sold_indicator']
 
 # Compute correlation between features and target
-corr_with_target = abs(X.corrwith(y))
+#corr_with_target = abs(X.corrwith(y))
 
 # Compute mutual information between features and target
-mi = mutual_info_classif(X, y, random_state=0)
+#mi = mutual_info_classif(X, y, random_state=0)
 
 # Combine correlation and mutual information scores
-scores = corr_with_target + mi
+#scores = corr_with_target + mi
 
 # Select top k features
-k = 10
-selector = SelectKBest(k=k)
-selector.fit(X, y)
-selected_features = X.columns[selector.get_support()]
+#k = 10
+#selector = SelectKBest(k=k)
+#selector.fit(X, y)
+#selected_features = X.columns[selector.get_support()]
 
 # Print the selected features
-print(selected_features)
+#print(selected_features)
+
+#We have decided to use Correlation Selection as K best is comparatively more heristic in nature 
+#You may try k Best method with the code above
 
 #Using Correlation Selection
 # Compute the correlation matrix
@@ -558,6 +559,7 @@ for col in cat_cols:
     df_7[col] = le.fit_transform(df_7[col])
 
 # Get the target model
+#target_model = 'Toyota Alphard Hybrid 2.5A X'
 target_model = 'Volvo V60 T5 R-Design'
 target_index = df_7[df_7['model'] == target_model].index[0]
 
@@ -572,12 +574,20 @@ count_matrix = count_vectorizer.fit_transform(model_list)
 cosine_sim = cosine_similarity(count_matrix[target_index], count_matrix)
 
 # Get the indices of the most similar models
-sim_indices = cosine_sim.argsort()[0][-5:-1]
+sim_indices = cosine_sim.argsort()[0][-10:-1]
 
 # Print the recommended models
 print("Recommended Models:")
 for i in sim_indices:
-    print("- Model:", df_7['model'][i], "(Cosine Similarity:", cosine_sim[0][i], ")")
+    if df_7.loc[i, 'sold_indicator'] == 0:
+        print("- Model:", df_7['model'][i], "(Cosine Similarity:", cosine_sim[0][i], ")")
+
+
+#Notes
+#The first part of the code encodes the categorical features of the dataset (i.e., 'transmission', 'types', 'status', and 'maker') using a LabelEncoder object. This is necessary because the cosine similarity calculation later on requires numerical values as inputs.
+#Next, the code sets a target model (target_model) and finds its index in the dataset (target_index). It then converts the entire dataset into a list of strings using the apply() method, which concatenates all the columns of each row into a single string.
+#Afterwards, the list of strings is transformed into a sparse matrix of token counts using the CountVectorizer object, which tokenizes each string into individual words and counts their occurrences in the entire list.
+#Finally, the cosine similarity between the target model and all other models in the dataset is calculated using the cosine_similarity function. The top 5 most similar models are identified based on their cosine similarity scores, and their names are printed as recommendations.
 
 
 #Recommender 8, based on user preference on just Brand, Price and Age
