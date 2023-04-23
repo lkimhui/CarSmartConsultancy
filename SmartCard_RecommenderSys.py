@@ -37,19 +37,21 @@ from surprise.model_selection import cross_validate, train_test_split
 from surprise import accuracy
 import datetime
 import tkinter as tk
+from PIL import Image, ImageTk #need to pip install Pillow
 
 ## Adding latest cleaned and rolled up data here ## 
 
 #Load the CSV file
 
 #preview the csv file
-df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
 
-##5 Recommender in total ##
+##6 Recommender in total ##
+## To show case 3,4,5,6 ##
 
 #1.) revisting the 1st model using just price on the clean dataset
 
@@ -387,10 +389,10 @@ print(df_5.head())
     # Car Type (SUV,  Pickup Truck) has Better safety profile; generally safer in collisions than smaller cars.
     # Newer cars usally have better safety features and technology
 
-suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
+#suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
 
-top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
-print(top_50_cars_safety.head())
+#top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
+#print(top_50_cars_safety.head())
 
 # Higher Comfort Rating 
 # Reasoning: 
@@ -398,31 +400,14 @@ print(top_50_cars_safety.head())
     # Car Type (Luxury) may give more advanced comfort features.
     # Newer launched cars usally have  newer cars may have better suspension, quieter cabins, and more advanced technology
 
-luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
+#luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
 
-top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
-print(top_50_cars_comfort.head())
-
-#Define user input 
-
-
-# Define function for High Safety Rating 
-def high_safety(user_input):
-    
-    if user_input == 'safety':
-        suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
-        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
-        output = print(top_50_cars_safety.head())
-    
-    else:
-        luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
-        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
-        output = print(top_50_cars_comfort.head())   
-    
-    return output
+#top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+#print(top_50_cars_comfort.head())
 
 # Attempt getting user input using Tkinter (a Python GUI toolkit)
 
+<<<<<<< HEAD
 # Define the function to get user input
 def get_input():
     # Get the value of the entry widget
@@ -436,23 +421,58 @@ def get_input():
     print(new_df_5)
 
 # Create the GUI window
+=======
+# function to handle user input
+def selection(user_input):
+    if user_input == 'Safety':
+        print("Safety is preferred and here are the top cars which have a high safety rating")
+        suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
+        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
+        output = print(top_50_cars_safety.head())
+        
+    elif user_input == 'Comfort':
+        print("Comfort is preferred and here are the top cars which have a high comfort rating")
+        luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
+        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+        output = print(top_50_cars_comfort.head())   
+        
+    else:
+        print("Invalid input. Please select only 1 option.")
+
+# function to get user input from button click
+def button_click(option):
+    selection(option)
+
+# create tkinter window
+>>>>>>> 0ea48500177ce9390d324e2aae8865f5567922d0
 root = tk.Tk()
-
-# Add a label widget and an entry widget to the GUI window
-label = tk.Label(root, text='Enter your input: Safety/ Comfort')
+label = tk.Label(root, text="Select your preference:")
 label.pack()
-entry = tk.Entry(root)
-entry.pack()
 
-# Add a button widget to the GUI window
-button = tk.Button(root, text='Submit', command=get_input)
-button.pack()
+# Create a PhotoImage object from a file
+image_file = Image.open('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/CSC_Logo.png')
+image = ImageTk.PhotoImage(image_file)
 
-# Start the GUI event loop
+# Create a Label widget to display the image
+image_label = tk.Label(root, image=image)
+image_label.pack()
+
+# Create selection buttons
+var = tk.StringVar()
+
+radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety')
+radio_button1.pack()
+
+radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort')
+radio_button2.pack()
+
+submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()])
+submit_button.pack()
+
+# run the window loop
 root.mainloop()
 
-user_input = 'safety'
-print(high_safety(user_input))
+
 
 #6.) Showcasing the top 10 selling model in the past periods
 #Popularity based recommender
