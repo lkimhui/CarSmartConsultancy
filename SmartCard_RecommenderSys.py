@@ -5,28 +5,30 @@ Created on Wed Apr  5 19:53:27 2023
 @author: kwanyick, Ivan
 """
 
-# Purpose: For cleaning data & build a recommender system
-#### TO INCLUDE FEATURE ENGINEERING before finalizing RCS
 
 ##Start##
 
-##Data Cleaning##
+##Recommender Systems##
 
 import pandas as pd
-from nltk.corpus import stopwords #pip install nltk 
-from nltk.stem import WordNetLemmatizer
 import nltk
-nltk.download('punkt')
-from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-from nltk.stem import SnowballStemmer
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
 from collections import Counter
-import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
 from math import sqrt
 from surprise import Dataset
 from surprise import Reader
@@ -53,7 +55,8 @@ print(df.head())
 
 #1.) revisting the 1st model using just price on the clean dataset
 
-df_1 = df
+# Load the dataset into a pandas dataframe
+df_1 = df.copy()
 
 df_1 = df[['car_id', 'model', 'price']]
 df_1['price'] = df_1.groupby('model')['price'].transform(lambda x: x.fillna(x.mean()))
@@ -64,10 +67,10 @@ print(df_1.head())
 print(df_1.info())
 
 # Define the Reader object to read the data
-reader = Reader(rating_scale=(df_1['price'].min(), df_1['price'].max()))
+reader = Reader(rating_scale=(df['price'].min(), df['price'].max()))
 
 # Load the data from the dataframe into the Surprise Dataset object
-data = Dataset.load_from_df(df_1[['model', 'car_id', 'price']], reader=reader)
+data = Dataset.load_from_df(df[['model', 'car_id', 'price']], reader=reader)
 
 # Define the SVD algorithm and fit the training data
 algo = SVD()
@@ -75,36 +78,61 @@ trainset = data.build_full_trainset()
 algo.fit(trainset)
 
 # Define a function to get recommended products
-def get_recommendations(price):
-    # Create a list of items that the user has not yet rated
-    model_list = df_1[df_1['price'] <= price]['model'].unique().tolist()
-    all_models = df_1['model'].unique().tolist()
-    unrated_models = list(set(all_models) - set(model_list))
-    unrated_ids = df_1[df_1['model'].isin(unrated_models)]['car_id'].unique().tolist()
-
+def get_recommendations(budget):
+    # Create a list of items that the user can afford
+    affordable_models = df[df['price'] <= budget]['model'].unique().tolist()
+    
+    # Filter the data to include only the affordable models
+    df_affordable = df[df['model'].isin(affordable_models)]
+    
+    # Group the data by model and fill missing prices with the mean price for the model
+    df_grouped = df_affordable.groupby('model').apply(lambda x: x.fillna(x.mean()))
+    
+    # Drop any rows with missing data
+    df_filtered = df_grouped.dropna(subset=['price'])
+    
+    # Load the filtered data into the Surprise Dataset object
+    data_filtered = Dataset.load_from_df(df_filtered[['model', 'car_id', 'price']], reader=reader)
+    
+    # Build the full training set and fit the algorithm
+    trainset_filtered = data_filtered.build_full_trainset()
+    algo.fit(trainset_filtered)
+    
+    # Get the unrated car ids for the affordable models
+    unrated_ids = df_filtered[~df_filtered['car_id'].isin(trainset_filtered.all_items())]['car_id'].unique().tolist()
+    
     # Create a list of tuples containing the unrated items and their predicted ratings
     predictions = []
     for car_id in unrated_ids:
         prediction = algo.predict(uid='user', iid=car_id)
         predictions.append((prediction.iid, prediction.est))
-
+    
     # Sort the predictions by rating (highest first) and return the top 5
     predictions.sort(key=lambda x: x[1], reverse=True)
     top_predictions = predictions[:5]
-
+    
     # Map the item IDs to their corresponding titles and return the result
     recommendations = []
-    for car_id, rating in top_predictions:
-        model = df_1[df_1['car_id'] == car_id]['model'].values[0]
-        recommendations.append((model, rating))
+    for prediction in top_predictions:
+        if len(prediction) == 2:
+            car_id, rating = prediction
+            model = df_filtered[df_filtered['car_id'] == car_id]['model'].values[0]
+            recommendations.append((model, rating))
+    
     return recommendations
 
-# Example usage given budget of 50000
-price = 50000
-recommendations = get_recommendations(price)
-print(f"Recommended models within price range of {price}:")
+# Example usage
+budget = 50000
+recommendations = get_recommendations(budget)
+print(f"Recommended models within budget of {budget}:")
 for rec in recommendations:
-    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")
+    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")  #For 50,000, model recommended BMW 2 or 3 series. 
+    
+budget = 10000
+recommendations = get_recommendations(budget)
+print(f"Recommended models within budget of {budget}:")
+for rec in recommendations:
+    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")  #For 10,000, model recommended Honda, Mitsubishi Lancer and Nissian Sylphy
     
 #Evaluating the recommender 1
 
@@ -123,47 +151,58 @@ print(f"Mean MAE: {results['test_mae'].mean():.3f}")
 
 
 #The output means that the mean RMSE (Root Mean Squared Error) of the model is 185201.348 vs 2090304.553 previously and the mean MAE (Mean Absolute Error) is 104722.119 vs 1791902.207 previously.
-#This is a stark improvement from the model prior to cleaning in our first try. However, we need to reference further to other model and utilize the other features to compare 
+#This is a stark improvement from the model prior to cleaning in our first try. 
+#Also, recommender 1 is solely base on price and while it showcases some recommender techniques, the business logic is no difference from a filtering system
+#However, we need to reference further to other model and utilize the other features to compare 
 #We will explore 4 more methods here
 
-#2.) Similarity based on product text descritpion columns
+ #2.) Similarity based on product text descritpion columns
 
 #Mining the text data
 #1 Using just the words description to build a recommdner
 
-df_2 = df
-df_2.info()
-#Converting features to string
-df_2['features'] = df_2['features'].astype(str)
-df_2['accessories'] = df_2['accessories'].astype(str)
-df_2['descriptions'] = df_2['descriptions'].astype(str)
-
-
-# define the columns to clean
-cols_to_clean = ['features', 'accessories', 'descriptions']
+df_2 = df[['model','features','accessories','descriptions']].copy()
+df_2.loc[:, 'features'] = df_2['features'].astype(str)
+df_2.loc[:, 'accessories'] = df_2['accessories'].astype(str)
+df_2.loc[:, 'descriptions'] = df_2['descriptions'].astype(str)
+print(df_2.dtypes)
+print(df_2.head())
 
 # convert the specified columns to lowercase
+cols_to_clean = ['features', 'accessories', 'descriptions']
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.str.lower())
+
+# define function to tokenize, remove stop words, and lemmatize
+def clean_text(text):
+    # tokenize text into words
+    words = word_tokenize(text)
+
+    # remove stop words
+    stop_words = set(stopwords.words('english'))
+    words = [word for word in words if word not in stop_words]
+
+    # lemmatize words
+    lemmatizer = WordNetLemmatizer()
+    words = [lemmatizer.lemmatize(word) for word in words]
+
+    return ' '.join(words)
+
+# apply the clean_text function to the specified columns
+df_2[cols_to_clean] = df_2[cols_to_clean].applymap(clean_text)
 
 # remove numbers and unwanted characters using regular expressions
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.str.replace(r'[^a-z\s]', '', regex=True))
 
-# tokenize the specified columns into words
+#tokenize the specified columns into words, remove stop words, lemmatize the words, and join them back into a single string:
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.str.split())
-
-# remove stop words using nltk library
 stop_words = set(stopwords.words('english'))
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.apply(lambda y: [word for word in y if not pd.isnull(word) and word not in stop_words]))
-
-# lemmatize the words using nltk library
 lemmatizer = WordNetLemmatizer()
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.apply(lambda y: [lemmatizer.lemmatize(word) for word in y]))
-
-# join the words back into a single string
 df_2[cols_to_clean] = df_2[cols_to_clean].apply(lambda x: x.apply(lambda y: ' '.join(y)))
 
-# fill NaN values with empty string
-#df[cols_to_clean] = df[cols_to_clean].replace(np.nan, '', regex=True)
+# print the cleaned up data
+print(df_2.head())
 
 # vectorize the cleaned up columns using TfidfVectorizer
 vectorizer = TfidfVectorizer()
@@ -172,7 +211,6 @@ X = vectorizer.fit_transform(df_2[cols_to_clean].apply(lambda x: ' '.join(x), ax
 # print the resulting feature names and document-term matrix
 print(vectorizer.get_feature_names())
 print(X.toarray())
-
 
 # create a dataframe from the resulting document-term matrix
 tfidf_df = pd.DataFrame(X.toarray(),
@@ -187,17 +225,20 @@ cos_sim = cosine_similarity(tfidf_df)
 # create a new dataframe with the cosine similarity scores
 cos_sim_df = pd.DataFrame(cos_sim, columns=tfidf_df.index, index=tfidf_df.index)
 
-# display the top 10 most similar models to a given model (in this example, model 'Volvo V60 T5 R-Design')
+# display the top 5 most similar models to a given model (in this example, model 'Volvo V60 T5 R-Design')
 model_name = 'Volvo V60 T5 R-Design'
 top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascending=False)[1:6]
 
 print(top_similar_models)
 
-print(df_2.head())
+model_name = 'Toyota Alphard Hybrid 2.5A X'
+top_similar_models = cos_sim_df[[model_name]].sort_values(by=model_name, ascending=False)[1:6]
+
+print(top_similar_models)
 
 #3.) base on all non text features
 
-df_3 = df
+df_3 = df.copy()
 df_3 = df.drop(columns = ['features', 'accessories', 'descriptions'])
 df_3.info()
 
@@ -236,9 +277,10 @@ similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
 print(similar_cars)
 print(similarities)
 
+#This recommended looks good with 99% similarities. 
 
 #4.) base on combine feature, text and non text (This is for user who dunno what they want)
-df_4 = df
+df_4 = df.copy()
 df_4.info()
 
 # Define the stemmer and stop words list
@@ -339,7 +381,7 @@ print(similarities)
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
-df_5 = df
+df_5 = df.copy()
 print(df_5.head())
 
 # Higher Safety Rating 
@@ -365,6 +407,21 @@ print(df_5.head())
 
 # Attempt getting user input using Tkinter (a Python GUI toolkit)
 
+<<<<<<< HEAD
+# Define the function to get user input
+def get_input():
+    # Get the value of the entry widget
+    user_input = entry.get()
+    label.config(text="You entered: " + user_input)
+    
+    # Create a new DataFrame with the user input
+    new_df_5 = pd.DataFrame({'user_input': [user_input]})
+    
+    # Print the new DataFrame
+    print(new_df_5)
+
+# Create the GUI window
+=======
 # function to handle user input
 def selection(user_input):
     if user_input == 'Safety':
@@ -387,6 +444,7 @@ def button_click(option):
     selection(option)
 
 # create tkinter window
+>>>>>>> 0ea48500177ce9390d324e2aae8865f5567922d0
 root = tk.Tk()
 label = tk.Label(root, text="Select your preference:")
 label.pack()
@@ -417,6 +475,7 @@ root.mainloop()
 
 
 #6.) Showcasing the top 10 selling model in the past periods
+#Popularity based recommender
 #Top selling models
 df_6 = pd.read_csv("/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
 df_6.info()
@@ -424,6 +483,254 @@ sold_counts = df_6[df_6['status'] == 'SOLD'].groupby('model')['status'].count().
 print(sold_counts.head(10))
 
 
+#7.) Features only, using status as the implicit feedback
+df_7 = df_6.copy()
+df_7['status'].unique()
+
+#Converting SOLD to 1 and AVAIL to 0
+# create a dictionary to map the status values to 1 or 0
+status_dict = {'SOLD': 1, 'AVAIL': 0}
+
+# create a new column 'sold_indicator' based on 'status' column
+df_7['sold_indicator'] = df_7['status'].map(status_dict)
+df_7.info()
+
+#Feature selection
+
+# Drop columns dates
+df_7.drop(['registration_date', 'manufactured_year'], axis=1, inplace=True)
+
+#Using K best method
+# Encode categorical columns
+cat_cols = ['model', 'transmission', 'types', 'status', 'maker']
+for col in cat_cols:
+    le = LabelEncoder()
+    df_7[col] = le.fit_transform(df_7[col])
+    
+# Define features and target
+X = df_7.drop(['sold_indicator'], axis=1)
+y = df_7['sold_indicator']
+
+# Compute correlation between features and target
+corr_with_target = abs(X.corrwith(y))
+
+# Compute mutual information between features and target
+mi = mutual_info_classif(X, y, random_state=0)
+
+# Combine correlation and mutual information scores
+scores = corr_with_target + mi
+
+# Select top k features
+k = 10
+selector = SelectKBest(k=k)
+selector.fit(X, y)
+selected_features = X.columns[selector.get_support()]
+
+# Print the selected features
+print(selected_features)
+
+#Using Correlation Selection
+# Compute the correlation matrix
+corr_matrix = df_7.corr()
+
+# Get the absolute values of the correlations
+corr_abs = corr_matrix.abs()
+
+# Set the threshold for selecting correlated features
+corr_threshold = 0.8
+
+# Select upper triangle of correlation matrix
+upper = corr_abs.where(np.triu(np.ones(corr_abs.shape), k=1).astype(np.bool))
+
+# Get the features to drop
+to_drop = [column for column in upper.columns if any(upper[column] > corr_threshold)]
+
+# Drop the correlated features
+df_7 = df_7.drop(to_drop, axis=1)
+df_7.info()
+
+#Recommender 7 based on only selected features
+
+# Convert categorical columns to numerical using LabelEncoder
+cat_cols = ['transmission', 'types', 'status', 'maker']
+for col in cat_cols:
+    le = LabelEncoder()
+    df_7[col] = le.fit_transform(df_7[col])
+
+# Get the target model
+target_model = 'Volvo V60 T5 R-Design'
+target_index = df_7[df_7['model'] == target_model].index[0]
+
+# Convert the dataframe to a list of strings
+model_list = df_7.apply(lambda x: ' '.join(x.astype(str)), axis=1).tolist()
+
+# Convert the list to a sparse matrix of token counts
+count_vectorizer = CountVectorizer(stop_words='english')
+count_matrix = count_vectorizer.fit_transform(model_list)
+
+# Calculate the cosine similarity between the target model and all other models
+cosine_sim = cosine_similarity(count_matrix[target_index], count_matrix)
+
+# Get the indices of the most similar models
+sim_indices = cosine_sim.argsort()[0][-5:-1]
+
+# Print the recommended models
+print("Recommended Models:")
+for i in sim_indices:
+    print("- Model:", df_7['model'][i], "(Cosine Similarity:", cosine_sim[0][i], ")")
+
+
+#Recommender 8, based on user preference on just Brand, Price and Age
+df_8 = df.copy()
+df_8.info()
+
+# Define a function to get the indices of the top 5 recommendations
+def recommend(index, df_8, column):
+    # Compute the cosine similarity matrix
+    sim_matrix = cosine_similarity(df_8[column])
+
+    # Get the pair-wise similarity scores of the cars with the input car
+    sim_scores = list(enumerate(sim_matrix[index]))
+
+    # Sort the cars based on the similarity scores
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the indices of the top 5 similar cars
+    top_indices = [i[0] for i in sim_scores[1:6]]
+
+    # Return the top 5 similar cars
+    return df_8.iloc[top_indices]
+
+# Get the user's preferred brand, price and age of car
+preferred_brand = "Honda"
+preferred_price = 80000
+preferred_age = 6
+
+# Filter the dataset based on the user's preferences
+filtered_df = df_8[(df_8['model'].str.contains(preferred_brand)) & (df_8['price'] <= preferred_price) & (df_8['age_of_car'] <= preferred_age)]
+
+if not filtered_df.empty:
+    # Reset the index of the filtered dataframe
+    filtered_df = filtered_df.reset_index(drop=True)
+
+    # Get the top 5 recommended cars
+    recommended_cars = recommend(0, filtered_df, ['price', 'age_of_car'])
+
+    # Display the recommended cars
+    print("Recommended Cars:")
+    print(recommended_cars)
+else:
+    print("No cars match the user's preferences.")
+
+# Get the user's preferred brand, price and age of car
+preferred_brand = "Toyota"
+preferred_price = 50000
+preferred_age = 5
+
+# Filter the dataset based on the user's preferences
+filtered_df = df_8[(df_8['model'].str.contains(preferred_brand)) & (df_8['price'] <= preferred_price) & (df_8['age_of_car'] <= preferred_age)]
+
+if not filtered_df.empty:
+    # Reset the index of the filtered dataframe
+    filtered_df = filtered_df.reset_index(drop=True)
+
+    # Get the top 5 recommended cars
+    recommended_cars = recommend(0, filtered_df, ['price', 'age_of_car'])
+
+    # Display the recommended cars
+    print("Recommended Cars:")
+    print(recommended_cars)
+else:
+    print("No cars match the user's preferences.")  ##If no product matches user preference
+    
+#In the case, we can configure the recommender system such that it recommend the next best product based on the price, brand or age of car
+#lets do a test based on just price and brand accordingly
+
+#Price
+# Define a function to get the indices of the top 5 recommendations
+def recommend(index, df_8, column):
+    # Compute the cosine similarity matrix
+    sim_matrix = cosine_similarity(df_8[column])
+
+    # Get the pair-wise similarity scores of the cars with the input car
+    sim_scores = list(enumerate(sim_matrix[index]))
+
+    # Sort the cars based on the similarity scores
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the indices of the top 5 similar cars
+    top_indices = [i[0] for i in sim_scores[1:6]]
+
+    # Return the top 5 similar cars
+    return df_8.iloc[top_indices]
+
+# Get the user's preferred brand, price and age of car
+preferred_brand = "Toyota"
+preferred_price = 50000
+preferred_age = 5
+
+# Filter the dataset based on the user's preferences
+filtered_df = df_8[(df_8['model'].str.contains(preferred_brand)) & (df_8['price'] <= preferred_price) & (df_8['age_of_car'] <= preferred_age)]
+
+# Check if any cars match the user's preferences
+if len(filtered_df) == 0:
+    # If no cars match, recommend the next closest based on price
+    filtered_df = df_8[(df_8['price'] > preferred_price) & (df_8['age_of_car'] <= preferred_age)]
+    filtered_df = filtered_df.sort_values(['price'], ascending=[True])
+    filtered_df = filtered_df.reset_index(drop=True)
+    recommended_cars = filtered_df.iloc[0:5]
+    print("No cars match your preferences. Here are the next closest options based on price:")
+    print(recommended_cars)
+else:
+    # If cars match, get the top 5 recommended cars
+    filtered_df = filtered_df.reset_index(drop=True)
+    recommended_cars = recommend(0, filtered_df, ['price', 'age_of_car'])
+    print("Recommended Cars:")
+    print(recommended_cars)
+
+#Brand
+# Define a function to get the indices of the top 5 recommendations
+def recommend(index, df_8, column):
+    # Compute the cosine similarity matrix
+    sim_matrix = cosine_similarity(df_8[column])
+
+    # Get the pair-wise similarity scores of the cars with the input car
+    sim_scores = list(enumerate(sim_matrix[index]))
+
+    # Sort the cars based on the similarity scores
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the indices of the top 5 similar cars
+    top_indices = [i[0] for i in sim_scores[1:6]]
+
+    # Return the top 5 similar cars
+    return df_8.iloc[top_indices]
+
+# Get the user's preferred brand, price and age of car
+preferred_brand = "Toyota"
+preferred_price = 50000
+preferred_age = 5
+
+# Filter the dataset based on the user's preferences
+filtered_df = df_8[(df_8['model'].str.contains(preferred_brand)) & (df_8['price'] <= preferred_price) & (df_8['age_of_car'] <= preferred_age)]
+
+# Check if any cars match the user's preferences
+if len(filtered_df) == 0:
+    # If no cars match, recommend the next best based on brand
+    filtered_df = df_8[df_8['model'].str.contains(preferred_brand)]
+    filtered_df = filtered_df.sort_values('price', ascending=True)
+    filtered_df = filtered_df.reset_index(drop=True)
+    recommended_cars = filtered_df.iloc[:5]
+    print("No cars match your preferences. Here are the next best options based on brand:")
+    print(recommended_cars)
+else:
+    # If cars match, get the top 5 recommended cars
+    filtered_df = filtered_df.reset_index(drop=True)
+    recommended_cars = recommend(0, filtered_df, ['price', 'age_of_car'])
+    print("Recommended Cars:")
+    print(recommended_cars)
+
+##End##
 
 # Compute the pairwise cosine similarity between the items
 #item_similarities = cosine_similarity(features_cleaned.T)
