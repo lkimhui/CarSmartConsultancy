@@ -987,7 +987,7 @@ def recommend_cars(user_input):
 
         print("Recommended cars based on comfort:")
         print(recommended_cars_comfort)
-        print("Top 10 Comfort cars with Domain.K included:")
+        print("Top 5 Comfort cars:")
         print(top_cars_comfort)
         for i in similar_indices:
             print("- Model:", df_5A['model'][i], "(Cosine Similarity:", cosine_similarities[0][i], ")","CarID:", df_5A['car_id'][i])
