@@ -403,7 +403,7 @@ safety_keywords = ['airbag', 'anti-lock', 'blind spot', 'sensor', 'camera', 'war
 comfort_keywords = ['luxurious', 'comfort', 'climate', 'infotainment system', 'knockdown','smart']
 
 # tokenize and check for safety/comfort keywords
-df_5[['features', 'accessories']] = df_5[['features', 'accessories']].applymap(lambda x: ' '.join(x) if isinstance(x, list) else x)
+df_5[['features', 'accessories','descriptions']] = df_5[['features', 'accessories','descriptions']].applymap(lambda x: ' '.join(x) if isinstance(x, list) else x)
 
 print(df_5['features'].dtype)
 print(df_5['accessories'].dtype)
@@ -466,6 +466,7 @@ file_name = f"rcs5_test.csv"
 file_path = '/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/data/cleaned_data/'
 df_5.to_csv(file_path + file_name, index=False)
 
+
 # Create the GUI window
 
 # create tkinter window
@@ -508,13 +509,27 @@ root.mainloop()
 #Popularity based recommender
 #Top selling models
 df_6 = pd.read_csv("/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
+df_6 = pd.read_csv("/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
 df_6.info()
 sold_counts = df_6[df_6['status'] == 'SOLD'].groupby('model')['status'].count().reset_index(name='sold_count').sort_values(by='sold_count', ascending=False)
 print(sold_counts.head(10))
 
 
 #7.) Features only, using status as the implicit feedback
-df_7 = df_6.copy()
+
+#df_7a = pd.read_csv("/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
+df_7a = pd.read_csv("/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
+
+#Add unique ID(new column)
+#Generate a sequence of integers for the unique IDs
+ids = range(1, len(df_7a)+1)
+df_7a['car_id']= ids
+df_7a['car_id_URL'] = 'https://www.sgcarmart.com/used_cars/info.php?ID=' + df_7a['car_id'].astype(str)
+
+print(df_7a.head())
+
+df_7 = df_7a.copy()
+
 df_7['status'].unique()
 
 #Converting SOLD to 1 and AVAIL to 0
@@ -612,7 +627,7 @@ sim_indices = cosine_sim.argsort()[0][-10:-1]
 print("Recommended Models:")
 for i in sim_indices:
     if df_7.loc[i, 'sold_indicator'] == 0:
-        print("- Model:", df_7['model'][i], "(Cosine Similarity:", cosine_sim[0][i], ")")
+        print("- Model:", df_7['model'][i], "(Cosine Similarity:", cosine_sim[0][i], ")", df_7['car_id_URL'][i])
 
 
 #Notes
