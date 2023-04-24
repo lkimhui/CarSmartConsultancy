@@ -46,8 +46,8 @@ import matplotlib.pyplot as plt
 #Load the CSV file
 
 #preview the csv file
-df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
@@ -869,23 +869,160 @@ else:
     print("Recommended Cars:")
     print(recommended_cars)
 
+
+# 5A.) based on user input, price, car type and age (This is for user who roughly know what they want)
+
+df_5A = df.copy()
+print(df_5A.head())
+
+# Attempt getting user input using Tkinter (a Python GUI toolkit)
+
+# define safety and comfort keywords
+safety_keywords = ['airbag', 'anti-lock', 'blind spot', 'sensor', 'camera', 'warning', 'safety', 'braking', 'beam', 'smart']
+comfort_keywords = ['luxurious', 'comfort', 'climate', 'infotainment system', 'knockdown', 'smart']
+
+# tokenize and check for safety/comfort keywords
+df_5A[['features', 'accessories', 'descriptions']] = df_5A[['features', 'accessories', 'descriptions']].applymap(lambda x: ' '.join(x) if isinstance(x, list) else x)
+
+df_5A['text'] = df_5A['features'] + df_5A['accessories'] + df_5A['descriptions']
+df_5A['tokens'] = df_5A['text'].str.lower().str.split()
+df_5A['safety_score'] = df_5A['tokens'].apply(lambda x: sum(1 for w in x if w in safety_keywords))
+df_5A['comfort_score'] = df_5A['tokens'].apply(lambda x: sum(1 for w in x if w in comfort_keywords))
+
+# create a tf-idf vectorizer object
+tfidf_vectorizer = TfidfVectorizer()
+
+# create tf-idf matrix, referring to the TF-IDF scores of each term
+tfidf_matrix = tfidf_vectorizer.fit_transform(df_5A['text'])
+
+# define a function that takes in a user's preferences and returns the top 10 recommended cars
+def recommend_cars(user_input):
+    n = 10 # number of recommended cars to return
+    
+    if user_input == 'Safety':
+        safety_score= 5 #example of user input
+        
+        # create a profile based on the user's preferences
+        profile_safety = ' '.join([' '.join(safety_keywords) + ' ']*safety_score)
+        
+        # create a tf-idf matrix for the user's profile
+        profile_matrix_safety = tfidf_vectorizer.transform([profile_safety])
+        
+        # calculate cosine similarities between the user's profile and all cars in the dataset
+        cosine_similarities = cosine_similarity(profile_matrix_safety, tfidf_matrix).flatten()
+        
+        # sort the similarities in descending order
+        similar_indices = cosine_similarities.argsort()[::-1]
+        
+        # get the top 10 recommended cars with their model names and cosine similarity scores
+        top_similar_indices = similar_indices[:n]
+        recommended_cars = [(df_5A.iloc[index]['model'], cosine_similarities[index]) for index in top_similar_indices]
+        
+        # filter cars based on type and age
+        suv_pickup_cars = df_5A[(df_5A['types_SUV'] == 1) | (df_5A['types_Truck'] == 1)]
+        filtered_cars_safety = suv_pickup_cars.sort_values(['age_of_car', 'safety_score'], ascending=[True, False]).head(50)
+        
+        # calculate cosine similarities between the user's profile and SUV and pickup cars
+        cosine_similarities = cosine_similarity(profile_matrix_safety, tfidf_matrix[filtered_cars_safety.index])
+        
+        # get the indices of the top 10 similar cars
+        similar_indices = cosine_similarities.argsort()[0][::-1][:n]
+        
+        # get the model names of the top 10 similar cars
+        top_cars_safety = suv_pickup_cars.iloc[similar_indices]['model'].tolist()
+        
+        print("Recommended cars based on safety:")
+        print(recommended_cars)
+        print("Top 5 Safe cars:")
+        print(top_cars_safety)
+        for i in similar_indices:
+            print("- Model:", df_5A['model'][i], "(Cosine Similarity:", cosine_similarities[0][i], ")","CarID:", df_5A['car_id'][i])
+
+
+    elif user_input == 'Comfort':
+        user_comfort_score= 5 #example of user input
+        
+        # create a profile based on the user's preferences
+        profile_comfort= ' '.join([' '.join(comfort_keywords) + ' ']*user_comfort_score)
+        
+        # create a tf-idf matrix for the user's profile
+        profile_matrix_comfort = tfidf_vectorizer.transform([profile_comfort])
+        
+        # calculate cosine similarities between the user's profile and all cars in the dataset
+        cosine_similarities = cosine_similarity(profile_matrix_comfort, tfidf_matrix).flatten()
+        
+        # sort the similarities in descending order
+        similar_indices = cosine_similarities.argsort()[::-1]
+        
+        # get the top 10 recommended cars with their model names and cosine similarity scores
+        top_similar_indices = similar_indices[:n]
+        recommended_cars_comfort = [(df_5A.iloc[index]['model'], cosine_similarities[index]) for index in top_similar_indices]
+        
+        # filter cars based on type and age
+        luxury_auto_cars = df_5A[(df_5A['types_Luxury Sedan'] == 1) & (df_5A['transmission_Auto'] == 1)]
+        luxury_auto_cars = luxury_auto_cars[luxury_auto_cars['age_of_car'] < 5]
+        filtered_cars_comfort = luxury_auto_cars.sort_values(['comfort_score'], ascending=[True]).head(50)  
+         
+        # calculate cosine similarities between the user's profile and SUV and pickup cars
+        cosine_similarities = cosine_similarity(profile_matrix_comfort, tfidf_matrix[filtered_cars_comfort.index])
+        
+        # get the indices of the top 10 similar cars
+        similar_indices = cosine_similarities.argsort()[0][::-1][:n]
+        
+        # get the model names of the top 10 similar cars
+        top_cars_comfort = luxury_auto_cars.iloc[similar_indices]['model'].tolist()
+
+
+        print("Recommended cars based on comfort:")
+        print(recommended_cars_comfort)
+        print("Top 10 Comfort cars with Domain.K included:")
+        print(top_cars_comfort)
+        for i in similar_indices:
+            print("- Model:", df_5A['model'][i], "(Cosine Similarity:", cosine_similarities[0][i], ")","CarID:", df_5A['car_id'][i])
+
+    else:
+        print("Invalid input. Please select only 1 option.")
+
+
+recommend_cars('Safety')
+
+# Create the GUI window
+
+# create tkinter window
+
+root = tk.Tk()
+root.geometry("500x450")
+root.configure(bg='white')
+root.title("User selection of Car Preference")
+
+label = tk.Label(root, text="Select your preference:")
+label.pack()
+
+# Create a PhotoImage object from a file
+image_file = Image.open('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/CSC_Logo.png')
+image = ImageTk.PhotoImage(image_file)
+
+# Create a Label widget to display the image
+image_label = tk.Label(root, image=image)
+image_label.pack()
+image_label.image = image  # keep a reference to the image
+
+# Create selection buttons
+var = tk.StringVar()
+
+radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety', font=("Cambria", 14))
+radio_button1.pack()
+
+radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort', font=("Cambria", 14))
+radio_button2.pack()
+
+submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()], font=("Cambria", 14), fg="white", bg="black")
+submit_button.pack()
+
+# run the window loop
+root.mainloop()
+
 ##End##
-
-# Compute the pairwise cosine similarity between the items
-#item_similarities = cosine_similarity(features_cleaned.T)
-
-# Get the top k most similar items for each item
-#k = 5
-#top_k_similar_items = item_similarities.argsort()[:, :-k-1:-1]
-
-# Define a function to get the top k recommended items for a given item
-#def get_top_k_recommendations(item_id):
-#    top_k_items = top_k_similar_items[item_id]
-#    top_k_items_scores = item_similarities[item_id][top_k_items]
-#    top_k_items_df = features_cleaned.iloc[top_k_items][['price','mileage']]
-#    top_k_items_df['score'] = top_k_items_scores
-#    top_k_items_df = top_k_items_df.sort_values(by='score', ascending=False)
-#    return top_k_items_df.head(k)
 
 
 
