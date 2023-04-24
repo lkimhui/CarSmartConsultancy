@@ -39,14 +39,17 @@ from surprise import accuracy
 import datetime
 import tkinter as tk
 from PIL import Image, ImageTk #need to pip install Pillow
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt #!pip install wordcloud
 
 ## Adding latest cleaned and rolled up data here ## 
 
 #Load the CSV file
 
 #preview the csv file
-df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
@@ -379,18 +382,10 @@ print(similarities)
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
-df_5 = df.copy()
-print(df_5.head())
-
 # Higher Safety Rating 
 # Reasoning: 
     # Car Type (SUV,  Pickup Truck) has Better safety profile; generally safer in collisions than smaller cars.
     # Newer cars usally have better safety features and technology
-
-#suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
-
-#top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
-#print(top_50_cars_safety.head())
 
 # Higher Comfort Rating 
 # Reasoning: 
@@ -398,73 +393,110 @@ print(df_5.head())
     # Car Type (Luxury) may give more advanced comfort features.
     # Newer launched cars usally have  newer cars may have better suspension, quieter cabins, and more advanced technology
 
-#luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
-
-#top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
-#print(top_50_cars_comfort.head())
+df_5 = df.copy()
+print(df_5.head())
 
 # Attempt getting user input using Tkinter (a Python GUI toolkit)
 
-<<<<<<< HEAD
-# Define the function to get user input
-def get_input():
-    # Get the value of the entry widget
-    user_input = entry.get()
-    label.config(text="You entered: " + user_input)
-    
-    # Create a new DataFrame with the user input
-    new_df_5 = pd.DataFrame({'user_input': [user_input]})
-    
-    # Print the new DataFrame
-    print(new_df_5)
+# define safety and comfort keywords
+safety_keywords = ['airbag', 'anti-lock', 'blind spot', 'sensor', 'camera', 'warning', 'safety', 'braking', 'beam', 'smart']
+comfort_keywords = ['luxurious', 'comfort', 'climate', 'infotainment system', 'knockdown','smart']
 
-# Create the GUI window
-=======
+# tokenize and check for safety/comfort keywords
+df_5[['features', 'accessories']] = df_5[['features', 'accessories']].applymap(lambda x: ' '.join(x) if isinstance(x, list) else x)
+
+print(df_5['features'].dtype)
+print(df_5['accessories'].dtype)
+
+df_5['text'] = df_5['features'] + df_5['accessories'] + df_5['descriptions']
+df_5['tokens'] = df_5['text'].str.lower().str.split()
+df_5['safety_score'] = df_5['tokens'].apply(lambda x: sum(1 for w in x if w in safety_keywords))
+df_5['comfort_score'] = df_5['tokens'].apply(lambda x: sum(1 for w in x if w in comfort_keywords))
+
+
 # function to handle user input
+
 def selection(user_input):
     if user_input == 'Safety':
         print("Safety is preferred and here are the top cars which have a high safety rating")
         suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
-        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
-        output = print(top_50_cars_safety.head())
-        
+        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car', 'safety_score'], ascending=[True, False]).head(50)
+        #output = print(top_50_cars_safety.head())
+        output = print(top_50_cars_safety[['model', 'safety_score']].head())
+ 
+        # concatenate safety keywords in top_50_cars_safety
+        safety_words = ' '.join([word for word in top_50_cars_safety['tokens'].explode() if word in safety_keywords])
+
+        # create wordcloud
+        wordcloud = WordCloud(width=800, height=800, background_color='white').generate(safety_words)
+
+        # plot the wordcloud
+        plt.figure(figsize=(8, 8), facecolor=None)
+        plt.imshow(wordcloud)
+        plt.axis('off')
+        plt.tight_layout(pad=0)
+        plt.show()
+                
     elif user_input == 'Comfort':
         print("Comfort is preferred and here are the top cars which have a high comfort rating")
         luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
-        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
-        output = print(top_50_cars_comfort.head())   
+        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch', 'comfort_score'], ascending=[True, False]).head(50)
+        #output = print(top_50_cars_comfort.head())
+        output = print(top_50_cars_comfort[['model','comfort_score']].head())   
+        
+        # concatenate safety keywords in top_50_cars_comfort
+        comfort_words = ' '.join([word for word in top_50_cars_comfort['tokens'].explode() if word in comfort_keywords])
+
+        # create wordcloud
+        wordcloud = WordCloud(width=800, height=800, background_color='white').generate(comfort_words)
+
+        # plot the wordcloud
+        plt.figure(figsize=(8, 8), facecolor=None)
+        plt.imshow(wordcloud)
+        plt.axis('off')
+        plt.tight_layout(pad=0)
+        plt.show()
         
     else:
         print("Invalid input. Please select only 1 option.")
 
-# function to get user input from button click
-def button_click(option):
-    selection(option)
+selection('Comfort') #test
+file_name = f"rcs5_test.csv"
+#file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/cleaned_data/'
+file_path = '/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/data/cleaned_data/'
+df_5.to_csv(file_path + file_name, index=False)
+
+# Create the GUI window
 
 # create tkinter window
->>>>>>> 0ea48500177ce9390d324e2aae8865f5567922d0
+
 root = tk.Tk()
+root.geometry("500x450")
+root.configure(bg='white')
+root.title("User selection of Car Preference")
+
 label = tk.Label(root, text="Select your preference:")
 label.pack()
 
 # Create a PhotoImage object from a file
 image_file = Image.open('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/CSC_Logo.png')
-!image = ImageTk.PhotoImage(image_file)
+image = ImageTk.PhotoImage(image_file)
 
 # Create a Label widget to display the image
 image_label = tk.Label(root, image=image)
 image_label.pack()
+image_label.image = image  # keep a reference to the image
 
 # Create selection buttons
 var = tk.StringVar()
 
-radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety')
+radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety', font=("Cambria", 14))
 radio_button1.pack()
 
-radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort')
+radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort', font=("Cambria", 14))
 radio_button2.pack()
 
-submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()])
+submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()], font=("Cambria", 14), fg="white", bg="black")
 submit_button.pack()
 
 # run the window loop
