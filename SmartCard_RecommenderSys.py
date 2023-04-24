@@ -64,8 +64,6 @@ table.scale(1, 2)
 ax.axis('off')
 plt.show()
 
-
-
 ##6 Recommender in total ##
 ## To show case 3,4,5,6 ##
 
@@ -272,7 +270,7 @@ def recommend_car(model_name):
     car_similarities = similarities[model_index]
 
     # Get the indices of the top 5 most similar cars (excluding the given car itself)
-    top_indices = car_similarities.argsort()[:-6:-1][1:]
+    top_indices = car_similarities.argsort()[:-7:-1][1:]
 
     # Get the cosine similarity scores of the top 5 most similar cars
     top_similarities = car_similarities[top_indices]
@@ -292,6 +290,48 @@ print(similarities)
 similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
 print(similar_cars)
 print(similarities)
+
+#Recommender 3 without type features, number of owners etc..
+
+df_3 = df.copy()
+df_3 = df.drop(columns = ['features', 'accessories', 'descriptions'])
+df_3.info()
+
+# Select the columns containing the features that will be used for recommendation
+features = df_3.drop(['car_id', 'model', 'number_of_owner_More than 6','types_Hatchback', 'types_Luxury Sedan', 'types_MPV', 'types_Mid-Sized Sedan', 'types_SUV', 'types_Sports Car', 'types_Stationwagon', 'types_Truck', 'types_Van'], axis=1)
+
+# Compute the pairwise cosine similarities between the cars
+similarities = cosine_similarity(features)
+
+def recommend_car(model_name):
+    # Get the row index corresponding to the given car model
+    model_index = df_3.index[df_3['model'] == model_name][0]
+
+    # Get the pairwise cosine similarities between the given car and all other cars
+    car_similarities = similarities[model_index]
+
+    # Get the indices of the top 5 most similar cars (excluding the given car itself)
+    top_indices = car_similarities.argsort()[:-7:-1][1:]
+
+    # Get the cosine similarity scores of the top 5 most similar cars
+    top_similarities = car_similarities[top_indices]
+
+    # Return the top 5 most similar cars and their cosine similarity scores
+    return df_3.iloc[top_indices][['car_id', 'model']], top_similarities
+
+# Example usage: recommend 5 cars similar to the car model "Volvo V60 T5 R-Design"
+similar_cars, similarities = recommend_car("Volvo V60 T5 R-Design")
+print(similar_cars)
+print(similarities)
+
+similar_cars, similarities = recommend_car("Toyota Alphard Hybrid 2.5A X")
+print(similar_cars)
+print(similarities)
+
+similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
+print(similar_cars)
+print(similarities)
+
 
 #This recommended looks good with 99% similarities. 
 
