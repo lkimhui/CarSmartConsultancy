@@ -141,12 +141,24 @@ recommendations = get_recommendations(budget)
 print(f"Recommended models within budget of {budget}:")
 for rec in recommendations:
     print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")  #For 50,000, model recommended BMW 2 or 3 series. 
-    
-budget = 10000
+
+budget = 35000
 recommendations = get_recommendations(budget)
 print(f"Recommended models within budget of {budget}:")
 for rec in recommendations:
-    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")  #For 10,000, model recommended Honda, Mitsubishi Lancer and Nissian Sylphy
+    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")
+    
+budget = 15000
+recommendations = get_recommendations(budget)
+print(f"Recommended models within budget of {budget}:")
+for rec in recommendations:
+    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}")  
+    
+budget = 90000
+recommendations = get_recommendations(budget)
+print(f"Recommended models within budget of {budget}:")
+for rec in recommendations:
+    print(f"Model: {rec[0]}, Predicted Rating: {rec[1]}") 
     
 #Evaluating the recommender 1
 
