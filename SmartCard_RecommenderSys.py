@@ -39,20 +39,32 @@ from surprise import accuracy
 import datetime
 import tkinter as tk
 from PIL import Image, ImageTk #need to pip install Pillow
-import re
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt #!pip install wordcloud
+import matplotlib.pyplot as plt
 
 ## Adding latest cleaned and rolled up data here ## 
 
 #Load the CSV file
 
 #preview the csv file
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
+
+#visual
+fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+table_data = [    ['Column Name', 'Data Type'],
+    *[[col, df[col].dtype] for col in df.columns]
+]
+
+table = ax.table(cellText=table_data, loc='center')
+table.set_fontsize(14)
+table.scale(1, 2)
+ax.axis('off')
+plt.show()
+
+
 
 ##6 Recommender in total ##
 ## To show case 3,4,5,6 ##
@@ -382,10 +394,18 @@ print(similarities)
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
+df_5 = df.copy()
+print(df_5.head())
+
 # Higher Safety Rating 
 # Reasoning: 
     # Car Type (SUV,  Pickup Truck) has Better safety profile; generally safer in collisions than smaller cars.
     # Newer cars usally have better safety features and technology
+
+#suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
+
+#top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
+#print(top_50_cars_safety.head())
 
 # Higher Comfort Rating 
 # Reasoning: 
@@ -393,11 +413,14 @@ print(similarities)
     # Car Type (Luxury) may give more advanced comfort features.
     # Newer launched cars usally have  newer cars may have better suspension, quieter cabins, and more advanced technology
 
-df_5 = df.copy()
-print(df_5.head())
+#luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
+
+#top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+#print(top_50_cars_comfort.head())
 
 # Attempt getting user input using Tkinter (a Python GUI toolkit)
 
+<<<<<<< HEAD
 # define safety and comfort keywords
 safety_keywords = ['airbag', 'anti-lock', 'blind spot', 'sensor', 'camera', 'warning', 'safety', 'braking', 'beam', 'smart']
 comfort_keywords = ['luxurious', 'comfort', 'climate', 'infotainment system', 'knockdown','smart']
@@ -413,53 +436,41 @@ df_5['tokens'] = df_5['text'].str.lower().str.split()
 df_5['safety_score'] = df_5['tokens'].apply(lambda x: sum(1 for w in x if w in safety_keywords))
 df_5['comfort_score'] = df_5['tokens'].apply(lambda x: sum(1 for w in x if w in comfort_keywords))
 
+=======
+<<<<<<< HEAD
+# Define the function to get user input
+def get_input():
+    # Get the value of the entry widget
+    user_input = entry.get()
+    label.config(text="You entered: " + user_input)
+    
+    # Create a new DataFrame with the user input
+    new_df_5 = pd.DataFrame({'user_input': [user_input]})
+    
+    # Print the new DataFrame
+    print(new_df_5)
+>>>>>>> ef57d3553d6cba3d6455c7e4925c56ee68487479
 
+# Create the GUI window
+=======
 # function to handle user input
-
 def selection(user_input):
     if user_input == 'Safety':
         print("Safety is preferred and here are the top cars which have a high safety rating")
         suv_pickup_cars = df_5[(df_5['types_SUV'] == 1) | (df_5['types_Truck'] == 1)]
-        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car', 'safety_score'], ascending=[True, False]).head(50)
-        #output = print(top_50_cars_safety.head())
-        output = print(top_50_cars_safety[['model', 'safety_score']].head())
- 
-        # concatenate safety keywords in top_50_cars_safety
-        safety_words = ' '.join([word for word in top_50_cars_safety['tokens'].explode() if word in safety_keywords])
-
-        # create wordcloud
-        wordcloud = WordCloud(width=800, height=800, background_color='white').generate(safety_words)
-
-        # plot the wordcloud
-        plt.figure(figsize=(8, 8), facecolor=None)
-        plt.imshow(wordcloud)
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.show()
-                
+        top_50_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
+        output = print(top_50_cars_safety.head())
+        
     elif user_input == 'Comfort':
         print("Comfort is preferred and here are the top cars which have a high comfort rating")
         luxury_auto_cars = df_5[(df_5['types_Luxury Sedan'] == 1) & (df_5['transmission_Auto'] == 1)]
-        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch', 'comfort_score'], ascending=[True, False]).head(50)
-        #output = print(top_50_cars_comfort.head())
-        output = print(top_50_cars_comfort[['model','comfort_score']].head())   
-        
-        # concatenate safety keywords in top_50_cars_comfort
-        comfort_words = ' '.join([word for word in top_50_cars_comfort['tokens'].explode() if word in comfort_keywords])
-
-        # create wordcloud
-        wordcloud = WordCloud(width=800, height=800, background_color='white').generate(comfort_words)
-
-        # plot the wordcloud
-        plt.figure(figsize=(8, 8), facecolor=None)
-        plt.imshow(wordcloud)
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.show()
+        top_50_cars_comfort = luxury_auto_cars.sort_values(['years_since_launch'], ascending=[True]).head(50)
+        output = print(top_50_cars_comfort.head())   
         
     else:
         print("Invalid input. Please select only 1 option.")
 
+<<<<<<< HEAD
 selection('Comfort') #test
 file_name = f"rcs5_test.csv"
 #file_path = '/Users/ivanong/Documents/GitHub/CarSmartConsultancy/data/cleaned_data/'
@@ -468,36 +479,36 @@ df_5.to_csv(file_path + file_name, index=False)
 
 
 # Create the GUI window
+=======
+# function to get user input from button click
+def button_click(option):
+    selection(option)
+>>>>>>> ef57d3553d6cba3d6455c7e4925c56ee68487479
 
 # create tkinter window
-
+>>>>>>> 0ea48500177ce9390d324e2aae8865f5567922d0
 root = tk.Tk()
-root.geometry("500x450")
-root.configure(bg='white')
-root.title("User selection of Car Preference")
-
 label = tk.Label(root, text="Select your preference:")
 label.pack()
 
 # Create a PhotoImage object from a file
 image_file = Image.open('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/CSC_Logo.png')
-image = ImageTk.PhotoImage(image_file)
+!image = ImageTk.PhotoImage(image_file)
 
 # Create a Label widget to display the image
 image_label = tk.Label(root, image=image)
 image_label.pack()
-image_label.image = image  # keep a reference to the image
 
 # Create selection buttons
 var = tk.StringVar()
 
-radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety', font=("Cambria", 14))
+radio_button1 = tk.Radiobutton(root, text="Safety", variable=var, value='Safety')
 radio_button1.pack()
 
-radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort', font=("Cambria", 14))
+radio_button2 = tk.Radiobutton(root, text="Comfort", variable=var, value='Comfort')
 radio_button2.pack()
 
-submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()], font=("Cambria", 14), fg="white", bg="black")
+submit_button = tk.Button(root, text="Submit", command=lambda: [selection(var.get()), root.destroy()])
 submit_button.pack()
 
 # run the window loop
@@ -508,11 +519,42 @@ root.mainloop()
 #6.) Showcasing the top 10 selling model in the past periods
 #Popularity based recommender
 #Top selling models
+
+# Create the DataFrame and perform the aggregation as before
 df_6 = pd.read_csv("/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
+<<<<<<< HEAD
 df_6 = pd.read_csv("/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/TableauData.csv")
 df_6.info()
+=======
+>>>>>>> ef57d3553d6cba3d6455c7e4925c56ee68487479
 sold_counts = df_6[df_6['status'] == 'SOLD'].groupby('model')['status'].count().reset_index(name='sold_count').sort_values(by='sold_count', ascending=False)
-print(sold_counts.head(10))
+
+
+#Creating a visual
+# Reverse the order of the DataFrame
+sold_counts = sold_counts.iloc[::-1]
+
+# Set up the figure and axis objects
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Create the horizontal bar chart with turquoise color
+bars = ax.barh(y=sold_counts['model'].tail(10), width=sold_counts['sold_count'].tail(10), color='turquoise')
+
+# Set the axis labels and title
+ax.set_xlabel('Number of Sales')
+ax.set_ylabel('Car Model')
+ax.set_title('Top 10 Best-Selling Car Models')
+
+# Sort the bars in ascending order
+bars = sorted(bars, key=lambda x: x.get_width())
+
+# Add data labels to the bars
+for bar in bars:
+    ax.text(bar.get_width(), bar.get_y() + bar.get_height() / 2, 
+            str(int(bar.get_width())), ha='left', va='center')
+
+# Show the plot
+plt.show()
 
 
 #7.) Features only, using status as the implicit feedback
