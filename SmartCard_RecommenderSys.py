@@ -904,15 +904,15 @@ df_5A['comfort_score'] = df_5A['tokens'].apply(lambda x: sum(1 for w in x if w i
 # create a tf-idf vectorizer object
 tfidf_vectorizer = TfidfVectorizer()
 
-# create tf-idf matrix, referring to the TF-IDF scores of each term
+# create tf-idf matrix, referring to the TF-IDF scores of each term (similarity for each word based on the keywords)
 tfidf_matrix = tfidf_vectorizer.fit_transform(df_5A['text'])
 
 # define a function that takes in a user's preferences and returns the top 10 recommended cars
 def recommend_cars(user_input):
-    n = 10 # number of recommended cars to return
+    n = 5 # number of recommended cars to return
     
     if user_input == 'Safety':
-        safety_score= 5 #example of user input
+        safety_score= 10 #example of user input
         
         # create a profile based on the user's preferences
         profile_safety = ' '.join([' '.join(safety_keywords) + ' ']*safety_score)
@@ -932,7 +932,7 @@ def recommend_cars(user_input):
         
         # filter cars based on type and age
         suv_pickup_cars = df_5A[(df_5A['types_SUV'] == 1) | (df_5A['types_Truck'] == 1)]
-        filtered_cars_safety = suv_pickup_cars.sort_values(['age_of_car', 'safety_score'], ascending=[True, False]).head(50)
+        filtered_cars_safety = suv_pickup_cars.sort_values(['age_of_car'], ascending=[True]).head(50)
         
         # calculate cosine similarities between the user's profile and SUV and pickup cars
         cosine_similarities = cosine_similarity(profile_matrix_safety, tfidf_matrix[filtered_cars_safety.index])
@@ -943,12 +943,11 @@ def recommend_cars(user_input):
         # get the model names of the top 10 similar cars
         top_cars_safety = suv_pickup_cars.iloc[similar_indices]['model'].tolist()
         
-        print("Recommended cars based on safety:")
+        print("Recommended cars based on Safety Score + User Preference:")
         print(recommended_cars)
-        print("Top 5 Safe cars:")
+        print("\n")
+        print("Recommended cars based on Safety Score + User Preference + Add Criteria:")
         print(top_cars_safety)
-        for i in similar_indices:
-            print("- Model:", df_5A['model'][i], "(Cosine Similarity:", cosine_similarities[0][i], ")","CarID:", df_5A['car_id'][i])
 
 
     elif user_input == 'Comfort':
@@ -971,12 +970,12 @@ def recommend_cars(user_input):
         recommended_cars_comfort = [(df_5A.iloc[index]['model'], cosine_similarities[index]) for index in top_similar_indices]
         
         # filter cars based on type and age
-        luxury_auto_cars = df_5A[(df_5A['types_Luxury Sedan'] == 1) & (df_5A['transmission_Auto'] == 1)]
-        luxury_auto_cars = luxury_auto_cars[luxury_auto_cars['age_of_car'] < 5]
-        filtered_cars_comfort = luxury_auto_cars.sort_values(['comfort_score'], ascending=[True]).head(50)  
-         
+        #luxury_auto_cars = df_5A[(df_5A['types_Luxury Sedan'] == 1) & (df_5A['transmission_Auto'] == 1)]
+        luxury_auto_cars = df_5A[df_5A['age_of_car'] < 5]
+        #filtered_cars_comfort = luxury_auto_cars.sort_values(['comfort_score'], ascending=[True]).head(50)  
+                
         # calculate cosine similarities between the user's profile and SUV and pickup cars
-        cosine_similarities = cosine_similarity(profile_matrix_comfort, tfidf_matrix[filtered_cars_comfort.index])
+        cosine_similarities = cosine_similarity(profile_matrix_comfort, tfidf_matrix[luxury_auto_cars.index])
         
         # get the indices of the top 10 similar cars
         similar_indices = cosine_similarities.argsort()[0][::-1][:n]
@@ -984,19 +983,17 @@ def recommend_cars(user_input):
         # get the model names of the top 10 similar cars
         top_cars_comfort = luxury_auto_cars.iloc[similar_indices]['model'].tolist()
 
-
-        print("Recommended cars based on comfort:")
+        print("Recommended cars based on Comfort Score + User Preference:")
         print(recommended_cars_comfort)
-        print("Top 5 Comfort cars:")
+        print("\n")
+        print("Recommended cars based on Comfort Score + User Preference + Add Criteria:")
         print(top_cars_comfort)
-        for i in similar_indices:
-            print("- Model:", df_5A['model'][i], "(Cosine Similarity:", cosine_similarities[0][i], ")","CarID:", df_5A['car_id'][i])
 
     else:
         print("Invalid input. Please select only 1 option.")
 
 
-recommend_cars('Safety')
+recommend_cars('Comfort')
 
 # Create the GUI window
 
