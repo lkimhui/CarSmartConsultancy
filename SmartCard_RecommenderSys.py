@@ -46,8 +46,8 @@ import matplotlib.pyplot as plt
 #Load the CSV file
 
 #preview the csv file
-#df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
-df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+df = pd.read_csv('/Users/ivanong/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
+#df = pd.read_csv('/Users/kwanyick/Documents/GitHub/CarSmartConsultancy/Data/cleaned_data/datarollup_latest.csv')
 print(df.describe())
 print(df.info())
 print(df.head())
@@ -440,9 +440,8 @@ get_top_5_car_models("Volvo V60 T5 R-Design")
 
 get_top_5_car_models("Toyota Alphard Hybrid 2.5A X")
 
-similar_cars, similarities = recommend_car("Lamborghini Aventador LP700-4 ")
-print(similar_cars)
-print(similarities)
+
+
 
 # 5.) based on user input, price, car type and age (This is for user who roughly know what they want)
 
